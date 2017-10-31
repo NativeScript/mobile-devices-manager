@@ -6,7 +6,7 @@ Install the node packages via:
 
 `$ npm install`
 
-Compile server 
+Compile 
 
 `$ npm run compile`
 
