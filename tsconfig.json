@@ -1,0 +1,41 @@
+{
+    "compilerOptions": {
+        "module": "commonjs",
+        "target": "es6",
+        "experimentalDecorators": true,
+        "emitDecoratorMetadata": true,
+        "noEmitHelpers": false,
+        "importHelpers": false,
+        "noEmitOnError": false,
+        "declaration": true,
+        "sourceMap": true,
+        "types": [
+            "node"
+        ],
+        "lib": [
+            "dom",
+            "es2015"
+        ],
+        "baseUrl": ".",
+        "paths": {
+            "*": [
+                "./node_modules/*"
+            ],
+            "db":[
+                "./db/*"
+            ],
+            "models":[
+                "./models/*"
+            ]
+        }
+    },
+    "include": [
+        ".",
+        "lib",
+        "models",
+        "db"
+    ],
+    "exclude": [
+        "node_modules"
+    ]
+}
