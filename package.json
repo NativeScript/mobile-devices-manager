@@ -11,7 +11,10 @@
   },
   "main": "index.js",
   "dependencies": {
-    "mongoose": "^4.6.7"
+    "mongoose": "^4.6.7",
+    "morgan": "^1.7.0",
+    "pug": "^2.0.0-beta6",
+    "q": "^1.4.1"
   },
   "devDependencies": {
     "@types/body-parser": "0.0.33",
