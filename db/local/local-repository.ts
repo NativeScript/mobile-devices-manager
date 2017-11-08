@@ -9,8 +9,8 @@ import {
 import {
     DeviceController,
     IDevice,
-    AndroidManager,
-    IOSManager,
+    AndroidController,
+    IOSController,
     Platform,
     Status
 } from 'mobile-devices-controller';
@@ -72,10 +72,10 @@ export class LocalRepository<T> implements IRepository<T> {
         // What if this is a real device
         if (device.status !== Status.SHUTDOWN && device.status !== Status.INVALID && device.status !== Status.UNAUTORIZED) {
             if (device.platform === Platform.IOS) {
-                tempFileLocation = `${IOSManager.getSimLocation(device.token)}/data/tmp/used.tmp`;
+                tempFileLocation = `${IOSController.getSimLocation(device.token)}/data/tmp/used.tmp`;
             } else {
                 const tempFolder = resolveFiles("./", device.name);
-                tempFileLocation = AndroidManager.pullFile(device, "/data/local/tmp/used.tmp", resolveFiles(tempFolder, "used.tmp"));
+                tempFileLocation = AndroidController.pullFile(device, "/data/local/tmp/used.tmp", resolveFiles(tempFolder, "used.tmp"));
             }
         }
 

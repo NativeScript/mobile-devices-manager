@@ -1,8 +1,8 @@
 import { IUnitOfWork } from "../db/interfaces/unit-of-work";
 
 import {
-    AndroidManager,
-    IOSManager,
+    AndroidController,
+    IOSController,
     DeviceController,
     IDevice,
     Device,
@@ -25,9 +25,9 @@ export class DeviceManager {
         for (var index = 0; index < maxDevicesToBoot; index++) {
             let device: IDevice = simulators[index];
             if (device.type === DeviceType.SIMULATOR) {
-                device = await IOSManager.startSimulator(device);
+                device = await IOSController.startSimulator(device);
             } else if (device.type === DeviceType.EMULATOR) {
-                device = await AndroidManager.startEmulator(device);
+                device = await AndroidController.startEmulator(device);
             }
             const json = (<Device>device).toJson();
             const result = await this._unitOfWork.devices.update(device.token, json);
@@ -80,7 +80,7 @@ export class DeviceManager {
 
     public async unSubscribeDevice(query): Promise<IDevice> {
         const device = await this._unitOfWork.devices.findSingle(query.token);
-        device.busySince =-1;
+        device.busySince = -1;
         device.info = "";
         device.status = Status.BOOTED;
         const result = await this._unitOfWork.devices.update(device.token, device);
@@ -121,9 +121,9 @@ export class DeviceManager {
 
     public async killDeviceSingle(device: IDevice) {
         if (device.type === DeviceType.SIMULATOR || device.platform === Platform.IOS) {
-            IOSManager.kill(device.token);
+            IOSController.kill(device.token);
         } else {
-            AndroidManager.kill(device);
+            AndroidController.kill(device);
         }
 
         device.status = Status.SHUTDOWN;
@@ -136,15 +136,15 @@ export class DeviceManager {
     public async killAll(query: any) {
         if (!query && !query.type && query.platform) {
             await this._unitOfWork.devices.dropDb();
-            IOSManager.killAll();
-            AndroidManager.killAll();
+            IOSController.killAll();
+            AndroidController.killAll();
         } else if (query) {
             if (query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR) {
-                IOSManager.killAll();
+                IOSController.killAll();
             }
 
             if (query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR) {
-                AndroidManager.killAll();
+                AndroidController.killAll();
             }
         }
 
