@@ -12,6 +12,13 @@ export { IRepository } from "./db/interfaces/repository";
 export { DeviceManager } from "./lib/device-manager";
 
 export async function getDeviceManager(repositoy?) {
-    const unitOfWork: IUnitOfWork = repositoy || constantns.localStorage !== undefined ? new LocalUnitOfWork() : new MongoUnitOfWork();
-    return new DeviceManager(unitOfWork);
+    const unitOfWork: IUnitOfWork = repositoy || constantns.localStorage ? new LocalUnitOfWork() : new MongoUnitOfWork();
+    if (constantns.verbose) {
+        console.log("",unitOfWork);
+    }
+    const deviceManager = new DeviceManager(unitOfWork);
+    if (constantns.verbose) {
+        console.log("",deviceManager);
+    }
+    return deviceManager;
 }

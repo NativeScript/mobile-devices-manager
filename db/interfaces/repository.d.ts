@@ -1,9 +1,8 @@
 export interface IRepository<T> {
-    add(item: T): any;
-    get(query: any): Promise<Array<T>>;
+    find(query?: T): Promise<Array<T>>;
+    findSingle(query: T): Promise<T>;
+    update(token: string, query: T): any;
+    add(query: T): any;
     remove(query: any): any;
-    update(item: string, query: any): any;
-    find(query?: any): Promise<Array<T>>;
-    findSingle(query: any): Promise<T>;
     dropDb(): Promise<void>;
 }

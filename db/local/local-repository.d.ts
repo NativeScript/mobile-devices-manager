@@ -1,11 +1,13 @@
-import { IRepository } from "../interfaces/repository";
+import { IRepository } from '../interfaces/repository';
 export declare class LocalRepository<T> implements IRepository<T> {
     constructor();
-    add(item: T): Promise<void>;
-    get(query: any): Promise<Array<T>>;
-    update(item: string, values: any): Promise<void>;
-    remove(item: any): Promise<void>;
-    find(item: any): Promise<Array<T>>;
+    find(query: any): Promise<Array<T>>;
     findSingle(item: any): Promise<T>;
+    private filter(query);
+    update(item: string, obj: T): Promise<void>;
+    add(item: T): Promise<void>;
+    remove(item: any): Promise<void>;
     dropDb(): any;
+    private setDiveceStatus(device);
+    private timeSpan(startTimeMiliSeconds, endTimeMiliSeconds);
 }

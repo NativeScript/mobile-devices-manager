@@ -2,15 +2,13 @@
   "name": "mobile-devices-manager",
   "description": "Comunicate with emulators, simulators and real devices",
   "version": "1.0.0",
-  "author": "SvetoslavTSenov",
-  "scripts": {
-    "watch": "tsc --watch"
-  },
+  "author": "SvetoslavTsenov",
   "bin": {
     "mobileD": "./bin/mobileD"
   },
   "main": "index.js",
   "dependencies": {
+    "mobile-devices-controller": "file:../mobile-devices-controller",
     "mongoose": "^4.6.7",
     "morgan": "^1.7.0",
     "pug": "^2.0.0-beta6",
@@ -24,11 +22,15 @@
     "@types/mongoose": "^4.5.41",
     "@types/morgan": "^1.7.32",
     "chai": "^3.5.0",
-    "mobile-devices-controller": "~0.0.5",
     "mocha": "^3.1.2",
     "mocha-typescript": "^1.0.11",
     "nodemon": "^1.11.0",
-    "typescript": "^2.0.8",
+    "typescript": "^2.5.0",
     "yargs": "^10.0.3"
+  },
+  "scripts": {
+    "prepare": "tsc",
+    "watch": "tsc --watch",
+    "mongodb":"mongod"
   }
 }

@@ -14,7 +14,9 @@
         ],
         "lib": [
             "dom",
-            "es2015"
+            "es2015",
+            "dom.iterable",
+            "es2015.iterable"
         ],
         "baseUrl": ".",
         "paths": {

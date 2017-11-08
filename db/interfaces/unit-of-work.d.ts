@@ -1,5 +1,5 @@
 import { IRepository } from "./repository";
-import { IDevice } from "../../models/interfaces/device";
+import { IDevice } from "mobile-devices-controller";
 export interface IUnitOfWork {
     devices: IRepository<IDevice>;
 }

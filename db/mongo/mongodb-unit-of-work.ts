@@ -1,10 +1,10 @@
 import { Connection, createConnection } from "mongoose";
 import { IUnitOfWork } from "../interfaces/unit-of-work";
 import { IRepository } from "../interfaces/repository";
-import { IDeviceModel } from "../../models/interfaces/device-model";
-import { IDevice } from "../../models/interfaces/device";
+import { IDeviceModel } from "../interfaces/device-model";
 import { MongoRepository } from "./mongo-repository";
 import * as schema from "./schemas/schema";
+import { IDevice } from "mobile-devices-controller";
 
 const MONGODB_CONNECTION: string = "mongodb://localhost:27017/devices";
 

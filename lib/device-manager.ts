@@ -1,11 +1,11 @@
-import * as d from "../models/interfaces/device";
 import { IUnitOfWork } from "../db/interfaces/unit-of-work";
 
 import {
     AndroidManager,
     IOSManager,
-    Device,
+    DeviceController,
     IDevice,
+    Device,
     Platform,
     DeviceType,
     Status
@@ -13,23 +13,7 @@ import {
 
 export class DeviceManager {
 
-    constructor(private _unitOfWork: IUnitOfWork) {
-
-    }
-
-    public async bootDevices() {
-        const simsCount = process.env.MAX_IOS_DEVICES_COUNT;
-        const emusCount = process.env.MAX_ANDROID_DEVICES_COUNT;
-        const simName = process.env.SIM_NAMES;
-        const emuName = process.env.EMU_NAMES;
-        let query = {
-            "name": { "$regex": simName, "$options": "i" },
-            "type": DeviceType.SIMULATOR,
-        };
-        await this.boot(query, simsCount);
-
-        query.type = DeviceType.EMULATOR;
-        await this.boot(query, emusCount);
+    constructor(private _unitOfWork: IUnitOfWork, private _useLocalRepository = true) {
     }
 
     public async boot(query, count) {
@@ -37,13 +21,13 @@ export class DeviceManager {
         let simulators = await this._unitOfWork.devices.find(query);
 
         const maxDevicesToBoot = Math.min(simulators.length, parseInt(count || 1));
-        const startedDevices = new Array<d.IDevice>();
+        const startedDevices = new Array<IDevice>();
         for (var index = 0; index < maxDevicesToBoot; index++) {
-            let device: d.IDevice = simulators[index];
+            let device: IDevice = simulators[index];
             if (device.type === DeviceType.SIMULATOR) {
-                device = await IOSManager.startSimulator(DeviceManager.copyIDeviceModelToDevice(device));
+                device = await IOSManager.startSimulator(device);
             } else if (device.type === DeviceType.EMULATOR) {
-                device = await AndroidManager.startEmulator(DeviceManager.copyIDeviceModelToDevice(device));
+                device = await AndroidManager.startEmulator(device);
             }
             const json = (<Device>device).toJson();
             const result = await this._unitOfWork.devices.update(device.token, json);
@@ -53,44 +37,58 @@ export class DeviceManager {
         return startedDevices;
     }
 
-    public async subscribeDevice(platform, deviceType, app, apiLevel, deviceName, count) {
-        const status = Status.BOOTED;
-        const searchQuery = {
-            "platform": platform,
-            "name": deviceName,
-            "type": deviceType,
-            "status": status,
-            "apiLevel": apiLevel,
-        };
+    public async subscribeDevice(query): Promise<IDevice> {
+        let count = query.count;
+        delete query.count;
+
+        let searchQuery: IDevice = DeviceManager.copyProperties(query);
+        delete searchQuery.info;
+        searchQuery.status = Status.BOOTED;
+
+        // searching for already booted devices
         let device = await this._unitOfWork.devices.findSingle(searchQuery);
-        count = (deviceType === Platform.ANDROID ? process.env.MAX_ANDROID_DEVICES_COUNT : process.env.MAX_IOS_DEVICES_COUNT) || 1
+        if (device) {
+            return device;
+        }
+
+        // get max count of devices that is aloud to be running
+        count = (query.deviceType === Platform.ANDROID ? process.env.MAX_ANDROID_DEVICES_COUNT : process.env.MAX_IOS_DEVICES_COUNT) || count || 1
         let busyDevices = 0;
         if (!device || device === null) {
+            // get all running devices
             searchQuery.status = Status.BUSY;
             busyDevices = (await this._unitOfWork.devices.find(searchQuery)).length;
 
+            // check if we can start a new one
             if (busyDevices < count) {
                 device = (await this.boot(searchQuery, 1))[0];
-                searchQuery.status = Status.BOOTED;
             }
         }
 
-        let searchedDevice = null;
-
+        // update newly booted device
         if (device || device !== null && busyDevices < count) {
-            const result = await this._unitOfWork.devices.update(device.token, {
-                "status": Status.BUSY,
-                "busySince": Date.now(),
-                "info": app
-            });
-
-            const updatedDevice = await this._unitOfWork.devices.findSingle({ 'token': device.token });
-            searchedDevice = DeviceManager.copyIDeviceModelToDevice(updatedDevice);
+            device.status = Status.BUSY;
+            device.busySince = Date.now();
+            device.info = query.info;
+            const result = await this._unitOfWork.devices.update(device.token, device);
+            const updatedDevice = await this._unitOfWork.devices.findSingle(device);
+            device = updatedDevice;
         }
 
-        return searchedDevice;
+        return device;
     }
 
+    public async unSubscribeDevice(query): Promise<IDevice> {
+        const device = await this._unitOfWork.devices.findSingle(query.token);
+        device.busySince =-1;
+        device.info = "";
+        device.status = Status.BOOTED;
+        const result = await this._unitOfWork.devices.update(device.token, device);
+
+        return result;
+    }
+
+    /// should be tested. 
     public async update(searchQuery, udpateQuery) {
         const searchedObj = {};
         searchQuery.split("&").forEach(element => {
@@ -103,91 +101,69 @@ export class DeviceManager {
             searchedObj[args[0]] = args[1];
         });
 
-        const simulators = await this._unitOfWork.devices.find(searchedObj);
+        const simulators = await this._unitOfWork.devices.find(<IDevice>searchedObj);
         const updatedSimulators = new Array();
         for (var index = 0; index < simulators.length; index++) {
             const sim = simulators[index];
             await this._unitOfWork.devices.update(sim.token, udpateQuery)
-            updatedSimulators.push(await this._unitOfWork.devices.find({ "token": sim.token }));
+            updatedSimulators.push(await this._unitOfWork.devices.find(<IDevice>{ "token": sim.token }));
         }
 
         return updatedSimulators;
     }
 
-    public getIOSDevices() {
-        return IOSManager.getAllDevices();
-    }
-
-    public getAndroidDevices() {
-        return AndroidManager.getAllDevices();
-    }
-
-    public async killDevice(obj, _unitOfWork: IUnitOfWork) {
-        const devices = await _unitOfWork.devices.find(obj);
+    public async killDevice(obj, unitOfWork: IUnitOfWork) {
+        const devices = await unitOfWork.devices.find(obj);
         devices.forEach(async (device) => {
             await this.killDeviceSingle(device);
         });
     }
 
-    public async killDeviceSingle(device: d.IDevice) {
+    public async killDeviceSingle(device: IDevice) {
         if (device.type === DeviceType.SIMULATOR || device.platform === Platform.IOS) {
             IOSManager.kill(device.token);
         } else {
-            AndroidManager.kill(DeviceManager.copyIDeviceModelToDevice(device));
+            AndroidManager.kill(device);
         }
 
         device.status = Status.SHUTDOWN;
         device.startedAt = -1;
-        device.token = "";
-        const tempQuery: any = (<Device>device).toJson();
-        tempQuery.startedUsageAt = -1;
-        tempQuery.holder = -1;
-
-        const log = await this._unitOfWork.devices.update(device.token, (<Device>device).toJson());
-        console.log(log);
+        device.busySince = -1;
+        const query: any = (<Device>device).toJson();
+        const log = await this._unitOfWork.devices.update(device.token, query);
     }
 
-    public async killAll(type?: string) {
-        if (!type) {
+    public async killAll(query: any) {
+        if (!query && !query.type && query.platform) {
             await this._unitOfWork.devices.dropDb();
-
             IOSManager.killAll();
-            await this.loadDBWithIOSDevices();
-
             AndroidManager.killAll();
-            await this.loadDBWithAndroidDevices();
-        } else {
-            if (type.includes("ios")) {
+        } else if (query) {
+            if (query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR) {
                 IOSManager.killAll();
-                await this.loadDBWithIOSDevices();
             }
 
-            if (type.includes("android")) {
+            if (query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR) {
                 AndroidManager.killAll();
-                await this.loadDBWithAndroidDevices();
             }
         }
+
+        this.refreshDb(query);
     }
 
-    public async refreshData(request?) {
-        await this._unitOfWork.devices.remove(request);
-
-        if (!request || !request.type || request.type.includes("ios")) {
-            await this.loadDBWithIOSDevices();
+    public async refreshData(query?) {
+        if (!this._useLocalRepository) {
+            await this._unitOfWork.devices.remove(query);
         }
-
-        if (!request || !request.type || request.type.includes("android")) {
-            await this.loadDBWithAndroidDevices();
-        }
-
-        const devices = await this._unitOfWork.devices.find();
+        this.refreshDb(query);
+        const devices = await this._unitOfWork.devices.find(query);
 
         return devices;
     }
 
     public checkDeviceStatus(maxUsageTime) {
         setInterval(async () => {
-            const devices = await this._unitOfWork.devices.find({ "startedAt": "gt :0" });
+            const devices = await this._unitOfWork.devices.find(<IDevice>{ status: Status.BUSY });
             devices.forEach(async (device) => {
                 const now = Date.now();
                 if (now - device.startedAt > maxUsageTime) {
@@ -198,69 +174,12 @@ export class DeviceManager {
         }, 300000);
     }
 
-    private static copyIDeviceModelToDevice(deviceModel: d.IDevice, device?: Device): IDevice {
-        if (!device) {
-            device = new Device(
-                DeviceManager.stringObjToPrimitiveConverter(deviceModel.name),
-                DeviceManager.stringObjToPrimitiveConverter(deviceModel.apiLevel),
-                DeviceManager.stringObjToPrimitiveConverter(deviceModel.type),
-                DeviceManager.stringObjToPrimitiveConverter(deviceModel.platform),
-                DeviceManager.stringObjToPrimitiveConverter(deviceModel.token),
-                DeviceManager.stringObjToPrimitiveConverter(deviceModel.status),
-                deviceModel.pid);
-            device.info = deviceModel.info;
-            device.config = deviceModel.config;
-            device.busySince = deviceModel.busySince;
-            device.startedAt = deviceModel.startedAt;
-        } else {
-            device.name = DeviceManager.stringObjToPrimitiveConverter(deviceModel.name);
-            device.pid = deviceModel.pid;
-            device.startedAt = deviceModel.startedAt;
-            device.status = DeviceManager.stringObjToPrimitiveConverter(deviceModel.status);
-            device.token = DeviceManager.stringObjToPrimitiveConverter(deviceModel.token);
-            device.type = DeviceManager.stringObjToPrimitiveConverter(deviceModel.type);
-            device.platform = DeviceManager.stringObjToPrimitiveConverter(deviceModel.platform);
-            device.apiLevel = DeviceManager.stringObjToPrimitiveConverter(deviceModel.apiLevel);
-            device.info = DeviceManager.stringObjToPrimitiveConverter(deviceModel.info);
-            device.config = DeviceManager.stringObjToPrimitiveConverter(deviceModel.config);
+    private async refreshDb(query) {
+        if (this._useLocalRepository) {
+            return;
         }
-
-        return device;
-    }
-
-    private static copyDeviceToIDeviceModel(device: Device, deviceModel: d.IDevice) {
-        deviceModel.name = device.name;
-        deviceModel.pid = device.pid;
-        deviceModel.startedAt = device.startedAt;
-        deviceModel.status = device.status;
-        deviceModel.token = device.token;
-        deviceModel.type = device.type;
-        deviceModel.info = device.info;
-        deviceModel.config = device.config;
-        deviceModel.apiLevel = device.apiLevel;
-    }
-
-    private static stringObjToPrimitiveConverter(obj: String) {
-        let value: any = undefined;
-        if (obj) {
-            value = obj + "";
-        }
-        return value;
-    }
-
-    private async loadDBWithAndroidDevices() {
-        (await this.getAndroidDevices()).forEach(async (devices) => {
-            devices.forEach(async (device) => {
-                await this.createModel(device);
-            });
-        });
-    }
-
-    private loadDBWithIOSDevices() {
-        this.getIOSDevices().forEach(async (devices) => {
-            devices.forEach(async (device) => {
-                await this.createModel(device);
-            });
+        (await DeviceController.getDivices(query)).forEach(async (device) => {
+            await this.createModel(device);
         });
     }
 
@@ -277,5 +196,20 @@ export class DeviceManager {
             config: device.config,
             apiLevel: device.apiLevel
         });
+    }
+
+    private static copyProperties(from: IDevice, to: IDevice = { platform: undefined, token: undefined, name: undefined, type: undefined }) {
+        Object.getOwnPropertyNames(from).forEach((prop) => {
+            if (from[prop]) {
+                to[prop] = from[prop];
+            }
+        });
+
+        Object.getOwnPropertyNames(to).forEach((prop) => {
+            if (!to[prop]) {
+                delete to[prop];
+            }
+        });
+        return to;
     }
 }
