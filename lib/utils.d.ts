@@ -12,4 +12,7 @@ export declare function isDirectory(fullName: string): boolean;
 export declare function isFile(fullName: string): boolean;
 export declare function isSymLink(fullName: string): boolean;
 export declare function getAllFileNames(folder: string): string[];
-export declare function mkDir(dir: string): void;
+export declare function mkDir(dir: any): void;
+export declare function mkFile(file: string, content: any): void;
+export declare function writeFileToJson(file: any, content: any): void;
+export declare function readJsonFromFile(file: any): any;

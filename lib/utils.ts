@@ -4,6 +4,8 @@ import * as path from "path";
 import {
     existsSync,
     statSync,
+    writeFileSync,
+    readFileSync,
     mkdirSync,
     rmdirSync,
     unlinkSync,
@@ -186,6 +188,34 @@ export function getAllFileNames(folder: string) {
     return files;
 }
 
-export function mkDir(dir: string) {
-    mkdirSync(dir);
+export function mkDir(dir) {
+    let mainPath: string = null;
+    dir.split(path.sep).forEach(element => {
+        if (mainPath === null) {
+            mainPath = element;
+        } else {
+            mainPath += path.sep + element;
+        }
+        if (!fileExists(mainPath)) {
+            mkdirSync(mainPath);
+        }
+    });
+}
+
+export function mkFile(file: string, content: any) {
+    const dir = path.dirname(file);
+    mkDir(dir);
+    writeFileSync(file, content);
+}
+
+export function writeFileToJson(file, content: any) {
+    const json = JSON.stringify(content, null, 2);
+    mkFile(file, json);
+}
+
+export function readJsonFromFile(file) {
+    const jsonFileContent = readFileSync(file, "UTF8");
+    const json = JSON.parse(jsonFileContent);
+
+    return json;
 }
