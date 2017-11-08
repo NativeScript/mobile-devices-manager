@@ -109,17 +109,24 @@ export class LocalRepository<T> implements IRepository<T> {
     }
 
     private static setInfo(device: IDevice) {
-        let tempFileLocation = undefined;
         if (device.platform === Platform.IOS) {
-            tempFileLocation = `${IOSController.getSimLocation(device.token)}/data/tmp/${fileName}`;
+            const tempFileLocation = `${IOSController.getSimLocation(device.token)}/data/tmp/${fileName}`;
+            if (device.status === Status.SHUTDOWN) {
+                removeFilesRecursive(tempFileLocation);
+            } else {
+                writeFileToJson(tempFileLocation, (<Device>device).toJson());
+            }
         } else {
+            if (device.status === Status.SHUTDOWN) {
+                return;
+            }
             const tempFolder = resolveFiles("./", device.name);
             if (!fileExists(tempFolder)) {
                 mkDir(tempFolder);
             }
             const tempFile = resolveFiles(tempFolder, fileName);
             writeFileToJson(tempFile, (<Device>device).toJson());
-            tempFileLocation = AndroidController.pushFile(device, tempFile, `/data/local/tmp/${fileName}`);
+            const tempFileLocation = AndroidController.pushFile(device, tempFile, `/data/local/tmp/${fileName}`);
             if (fileExists(tempFileLocation)) {
                 removeFilesRecursive(tempFolder);
             }
