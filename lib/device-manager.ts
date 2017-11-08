@@ -112,50 +112,37 @@ export class DeviceManager {
         return updatedSimulators;
     }
 
-    public async killDevice(obj, unitOfWork: IUnitOfWork) {
-        const devices = await unitOfWork.devices.find(obj);
-        devices.forEach(async (device) => {
-            await this.killDeviceSingle(device);
-        });
-    }
-
-    public async killDeviceSingle(device: IDevice) {
-        if (device.type === DeviceType.SIMULATOR || device.platform === Platform.IOS) {
-            IOSController.kill(device.token);
-        } else {
-            AndroidController.kill(device);
-        }
-
-        device.status = Status.SHUTDOWN;
-        device.startedAt = -1;
-        device.busySince = -1;
-        const query: any = (<Device>device).toJson();
-        const log = await this._unitOfWork.devices.update(device.token, query);
-    }
-
-    public async killAll(query: any) {
+    public async killDevices(query?) {
         if (!query && !query.type && query.platform) {
             await this._unitOfWork.devices.dropDb();
             IOSController.killAll();
             AndroidController.killAll();
+            this.refreshDb(query);
         } else if (query) {
-            if (query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR) {
+            if (Object.getOwnPropertyNames(query).length === 2 && query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR) {
                 IOSController.killAll();
-            }
-
-            if (query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR) {
+            } else if (Object.getOwnPropertyNames(query).length === 2 && query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR) {
                 AndroidController.killAll();
+            } else {
+                const devices = await this._unitOfWork.devices.find(query);
+                devices.forEach(async (device) => {
+                    await DeviceController.kill(device);
+                    device.status = Status.SHUTDOWN;
+                    device.startedAt = -1;
+                    device.busySince = -1;
+                    const query: any = (<Device>device).toJson();
+                    const log = await this._unitOfWork.devices.update(device.token, query);
+                });
             }
         }
-
-        this.refreshDb(query);
     }
 
     public async refreshData(query?) {
         if (!this._useLocalRepository) {
             await this._unitOfWork.devices.remove(query);
+            this.refreshDb(query);
         }
-        this.refreshDb(query);
+
         const devices = await this._unitOfWork.devices.find(query);
 
         return devices;
@@ -167,7 +154,7 @@ export class DeviceManager {
             devices.forEach(async (device) => {
                 const now = Date.now();
                 if (now - device.startedAt > maxUsageTime) {
-                    await this.killDeviceSingle(device);
+                    await this.killDevices(device);
                     await this.boot({ "name": device.name }, 1);
                 }
             });
