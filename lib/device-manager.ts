@@ -18,19 +18,15 @@ export class DeviceManager {
 
     public async boot(query, count) {
         query.status = Status.SHUTDOWN;
-        let simulators = await this._unitOfWork.devices.find(query);
+        let simulators = 
+        await this._unitOfWork.devices.find(query);
 
         const maxDevicesToBoot = Math.min(simulators.length, parseInt(count || 1));
         const startedDevices = new Array<IDevice>();
         for (var index = 0; index < maxDevicesToBoot; index++) {
             let device: IDevice = simulators[index];
-            if (device.type === DeviceType.SIMULATOR) {
-                device = await IOSController.startSimulator(device);
-            } else if (device.type === DeviceType.EMULATOR) {
-                device = await AndroidController.startEmulator(device);
-            }
-            const json = (<Device>device).toJson();
-            const result = await this._unitOfWork.devices.update(device.token, json);
+            device = await DeviceController.startDevice(device);
+            const result = await this._unitOfWork.devices.update(device.token, device);
             startedDevices.push(device);
         }
 
