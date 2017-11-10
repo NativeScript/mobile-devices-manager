@@ -1,7 +1,7 @@
 import { Model, Document, DocumentQuery } from "mongoose"; //import mongoose
+import { IDevice } from "mobile-devices-controller";
 import { IRepository } from "../interfaces/repository";
 import { IDeviceModel } from "../interfaces/device-model";
-import { IDevice } from "mobile-devices-controller";
 
 export class MongoRepository<T extends Document> implements IRepository<T> {
     private _entitySet: Model<T>

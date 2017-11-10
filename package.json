@@ -8,7 +8,7 @@
   },
   "main": "index.js",
   "dependencies": {
-    "mobile-devices-controller": "file:../mobile-devices-controller",
+    "mobile-devices-controller": "mobile-devices-controller",
     "mongoose": "^4.6.7",
     "morgan": "^1.7.0",
     "pug": "^2.0.0-beta6",
@@ -25,12 +25,11 @@
     "mocha": "^3.1.2",
     "mocha-typescript": "^1.0.11",
     "nodemon": "^1.11.0",
-    "typescript": "^2.5.0",
+    "typescript": "^2.6.1",
     "yargs": "^10.0.3"
   },
   "scripts": {
-    "prepare": "tsc",
     "watch": "tsc --watch",
-    "mongodb":"mongod"
+    "mongodb": "mongod"
   }
 }
