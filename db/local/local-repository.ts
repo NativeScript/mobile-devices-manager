@@ -3,7 +3,6 @@ import {
     fileExists,
     fileInfo,
     mkDir,
-    mkFile,
     writeFileToJson,
     readJsonFromFile,
     resolveFiles,
@@ -20,7 +19,8 @@ import {
     DeviceType
 } from 'mobile-devices-controller';
 
-const fileName = "info.json";
+const DEVICE_INFO_PACKAGE_JSON = "info.json";
+const DEVICES_INFO_DIR = "~/devices-info"
 
 export class LocalRepository<T> implements IRepository<T> {
 
@@ -47,7 +47,10 @@ export class LocalRepository<T> implements IRepository<T> {
         const devices = await DeviceController.getDivices(query);
         let filteredDevices = null;
         if (query.status) {
-            filteredDevices = devices.filter((device) => this.setDiveceStatus(device));
+            filteredDevices = devices.filter((device) => {
+                LocalRepository.getInfo(device);
+                return device.status === query.status;
+            });
         } else {
             filteredDevices = devices;
         }
@@ -55,13 +58,11 @@ export class LocalRepository<T> implements IRepository<T> {
         return filteredDevices;
     }
 
-    public async update(item: string, obj: any) {
-        const devices = await DeviceController.getDivices({ token: item });
+    public async update(token: string, obj: any) {
+        const devices = await DeviceController.getDivices({ "token": token });
         if (devices && devices.length > 0) {
-            LocalRepository.setInfo(<IDevice>obj);
+            LocalRepository.setInfo(obj);
         }
-        // This method should create file.json where we should store the data given by update
-        // Basically if there is already such a file we need to update it if not create and update
     }
 
     public async add(item: T) {
@@ -76,98 +77,80 @@ export class LocalRepository<T> implements IRepository<T> {
         return null;
     }
 
-
     private setDiveceStatus(device: IDevice) {
-        device.status = LocalRepository.getInfo(device).status;
+        const status = LocalRepository.getInfo(device);
+        device.status = status.status ? status.status : Status.SHUTDOWN;
     }
 
     private static getInfo(device: IDevice): IDevice {
-        let tempFileLocation = undefined;
-
-        // What if this is a real device
-        if (device.platform === Platform.IOS) {
-            tempFileLocation = `${IOSController.getSimLocation(device.token)}/data/tmp/${fileName}`;
-        } else {
-            const tempFolder = resolveFiles("./", device.name);
-            if (!fileExists(tempFolder)) {
-                mkDir(tempFolder);
-            }
-            tempFileLocation = AndroidController.pullFile(device, `/data/local/tmp/${fileName}`, resolveFiles(tempFolder, fileName));
-            if (!fileExists(tempFileLocation)) {
-                removeFilesRecursive(tempFolder);
-            }
-        }
-
-        // in case there is no file it means that the device is not booted and it should not contain file
-        if (!fileExists(tempFileLocation) && !device.status) {
+        const storage = LocalRepository.getStorageDir(device.token);
+        if (!storage || !fileExists(storage)) {
+            DeviceController.kill(device);
             device.status = Status.SHUTDOWN;
-        } else {
-            device = <IDevice>readJsonFromFile(tempFileLocation);
+
+            return device;
         }
 
-        return device;
-    }
+        const fileInfo = resolveFiles(storage, DEVICE_INFO_PACKAGE_JSON);
+        if (!fileInfo || !fileExists(fileInfo)) {
+            DeviceController.kill(device);
+            device.status = Status.SHUTDOWN;
 
-    private static setInfo(device: IDevice) {
-        if (device.platform === Platform.IOS) {
-            const tempFileLocation = `${IOSController.getSimLocation(device.token)}/data/tmp/${fileName}`;
-            if (device.status === Status.SHUTDOWN) {
-                removeFilesRecursive(tempFileLocation);
-            } else {
-                writeFileToJson(tempFileLocation, (<Device>device).toJson());
-            }
-        } else {
-            if (device.status === Status.SHUTDOWN) {
-                return;
-            }
-            const tempFolder = resolveFiles("./", device.name);
-            if (!fileExists(tempFolder)) {
-                mkDir(tempFolder);
-            }
-            const tempFile = resolveFiles(tempFolder, fileName);
-            writeFileToJson(tempFile, (<Device>device).toJson());
-            const tempFileLocation = AndroidController.pushFile(device, tempFile, `/data/local/tmp/${fileName}`);
-            if (fileExists(tempFileLocation)) {
-                removeFilesRecursive(tempFolder);
-            }
+            return device;
         }
+
+        return <IDevice>readJsonFromFile(fileInfo);
     }
 
-    // Defines device status according to the file. 
-    // private setDiveceStatus(device: IDevice): IDevice {
-    //     let tempFileLocation = undefined;
+    private static setInfo(device: IDevice): IDevice {
+        const storage = LocalRepository.getStorageDir(device.token);
+        if (!storage || !fileExists(storage)) {
+            DeviceController.kill(device);
+            mkDir(storage);
+        }
 
-    //     // What if this is a real device
-    //     if (device.status !== Status.SHUTDOWN && device.status !== Status.INVALID && device.status !== Status.UNAUTORIZED) {
-    //         if (device.platform === Platform.IOS) {
-    //             tempFileLocation = `${IOSController.getSimLocation(device.token)}/data/tmp/used.tmp`;
-    //         } else {
-    //             const tempFolder = resolveFiles("./", device.name);
-    //             tempFileLocation = AndroidController.pullFile(device, "/data/local/tmp/used.tmp", resolveFiles(tempFolder, "used.tmp"));
-    //         }
-    //     }
+        if (device.status === Status.SHUTDOWN) {
+            removeFilesRecursive(storage);
+            return device;
+        }
 
-    //     if (fileExists(tempFileLocation)) {
+        LocalRepository.writeToStorage(device);
+    }
 
-    //         // Change this with json object
-    //         const lastModified = fileInfo(tempFileLocation).mtime;
-    //         const lastModifiedMiliSeconds = new Date(lastModified).getMilliseconds();
-    //         console.log(`${device.token} is in use since ${this.timeSpan(Date.now(), lastModifiedMiliSeconds)}!`)
-    //         device.status = Status.BUSY;
-    //         device.info = `${device.token} is in use since ${this.timeSpan(Date.now(), lastModifiedMiliSeconds)}!`;
-    //         return device;
-    //     } else {
-    //         console.log(`${device.name}:${device.token} is free!`);
-    //         return device;
-    //     }
-    // }
+    private static writeToStorage(device: IDevice) {
+        const tempFile = LocalRepository.getStorageDir(device.token);
+        const fileInfo = resolveFiles(tempFile, DEVICE_INFO_PACKAGE_JSON);
+        const json = LocalRepository.copyProperties(device).toJson();
+        writeFileToJson(fileInfo, json);
+    }
 
-    // private timeSpan(startTimeMiliSeconds: number, endTimeMiliSeconds: number) {
-    //     const timespan = startTimeMiliSeconds - endTimeMiliSeconds;
-    //     if (timespan !== NaN) {
-    //         const time = new Date(timespan);
-    //         return `${time.getHours}:${time.getMinutes}:${time.getSeconds}`;
-    //     }
-    //     return "";
-    // }
+    private static copyProperties(from: any) :Device {
+        const to: Device = new Device(undefined, undefined, undefined, undefined, undefined, undefined);
+        Object.getOwnPropertyNames(from).forEach((prop) => {
+            if (from[prop]) {
+                const propName = prop.startsWith('_') ? prop.replace('_', '') : prop;
+                to[propName] = from[prop];
+            }
+        });
+
+        Object.getOwnPropertyNames(to).forEach((prop) => {
+            if (!to[prop]) {
+                delete to[prop];
+            }
+        });
+        return to;
+    }
+
+    private static getStorageDir(token: string) {
+        const locaTempStorage = resolveFiles(DEVICES_INFO_DIR, token);
+        return locaTempStorage;
+    }
+
+    private createStorage(token: string) {
+        const locaTempStorage = resolveFiles(DEVICES_INFO_DIR, token);
+        if (!fileExists(locaTempStorage)) {
+            mkDir(locaTempStorage);
+        }
+        return locaTempStorage;
+    }
 }

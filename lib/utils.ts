@@ -196,7 +196,7 @@ export function mkDir(dir) {
         } else {
             mainPath += path.sep + element;
         }
-        if (!fileExists(mainPath)) {
+        if (mainPath && mainPath !== "" && !fileExists(mainPath)) {
             mkdirSync(mainPath);
         }
     });

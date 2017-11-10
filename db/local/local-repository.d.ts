@@ -4,11 +4,15 @@ export declare class LocalRepository<T> implements IRepository<T> {
     find(query: any): Promise<Array<T>>;
     findSingle(item: any): Promise<T>;
     private filter(query);
-    update(item: string, obj: any): Promise<void>;
+    update(token: string, obj: any): Promise<void>;
     add(item: T): Promise<void>;
     remove(item: any): Promise<void>;
     dropDb(): any;
     private setDiveceStatus(device);
     private static getInfo(device);
     private static setInfo(device);
+    private static writeToStorage(device);
+    private static copyProperties(from);
+    private static getStorageDir(token);
+    private createStorage(token);
 }

@@ -11,6 +11,8 @@ export declare class DeviceManager {
     killDevices(query?: any): Promise<void>;
     refreshData(query?: any): Promise<IDevice[]>;
     checkDeviceStatus(maxUsageTime: any): void;
+    private mark(query);
+    private unmark(query);
     private refreshDb(query);
     private createModel(device);
     private static copyProperties(from, to?);

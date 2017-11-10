@@ -18,8 +18,9 @@ export class DeviceManager {
 
     public async boot(query, count) {
         query.status = Status.SHUTDOWN;
-        let simulators = 
-        await this._unitOfWork.devices.find(query);
+        query.platform = query.platform ? query.platform : (query.type === DeviceType.EMULATOR ? Platform.ANDROID : Platform.IOS);
+        let simulators =
+            await this._unitOfWork.devices.find(query);
 
         const maxDevicesToBoot = Math.min(simulators.length, parseInt(count || 1));
         const startedDevices = new Array<IDevice>();
@@ -34,9 +35,6 @@ export class DeviceManager {
     }
 
     public async subscribeDevice(query): Promise<IDevice> {
-        let count = query.count;
-        delete query.count;
-
         let searchQuery: IDevice = DeviceManager.copyProperties(query);
         delete searchQuery.info;
         searchQuery.status = Status.BOOTED;
@@ -44,31 +42,40 @@ export class DeviceManager {
         // searching for already booted devices
         let device = await this._unitOfWork.devices.findSingle(searchQuery);
         if (device) {
+            device.info = query.info;
+            await this.mark(device);
             return device;
         }
 
-        // get max count of devices that is aloud to be running
-        count = (query.deviceType === Platform.ANDROID ? process.env.MAX_ANDROID_DEVICES_COUNT : process.env.MAX_IOS_DEVICES_COUNT) || count || 1
         let busyDevices = 0;
+        let count = (query.type === DeviceType.EMULATOR || query.platform === Platform.ANDROID) ? process.env['MAX_EMU_COUNT'] : process.env['MAX_SIM_COUNT'] || 1;
+
         if (!device || device === null) {
-            // get all running devices
+
             searchQuery.status = Status.BUSY;
             busyDevices = (await this._unitOfWork.devices.find(searchQuery)).length;
 
-            // check if we can start a new one
             if (busyDevices < count) {
-                device = (await this.boot(searchQuery, 1))[0];
+                searchQuery.status = Status.SHUTDOWN;
+                device = await this._unitOfWork.devices.findSingle(searchQuery);
+                if (device) {
+                    device.info = query.info;
+                    await this.mark(device);
+                    device.info = undefined;
+                    device = (await this.boot(device, 1))[0];
+                }
+
+                if (!device) {
+                    await this.unmark(searchQuery);
+                }
             }
         }
 
-        // update newly booted device
         if (device || device !== null && busyDevices < count) {
-            device.status = Status.BUSY;
-            device.busySince = Date.now();
-            device.info = query.info;
-            const result = await this._unitOfWork.devices.update(device.token, device);
-            const updatedDevice = await this._unitOfWork.devices.findSingle(device);
-            device = updatedDevice;
+            device.info = query.info;            
+            device = await this.mark(query);
+        }else{
+            device = await this.mark(query);
         }
 
         return device;
@@ -77,7 +84,7 @@ export class DeviceManager {
     public async unSubscribeDevice(query): Promise<IDevice> {
         const device = await this._unitOfWork.devices.findSingle(query.token);
         device.busySince = -1;
-        device.info = "";
+        device.info = undefined;
         device.status = Status.BOOTED;
         const result = await this._unitOfWork.devices.update(device.token, device);
 
@@ -109,7 +116,7 @@ export class DeviceManager {
     }
 
     public async killDevices(query?) {
-        if (!query && !query.type && query.platform) {
+        if (!query || (!query.type && query.platform)) {
             await this._unitOfWork.devices.dropDb();
             IOSController.killAll();
             AndroidController.killAll();
@@ -157,6 +164,27 @@ export class DeviceManager {
         }, 300000);
     }
 
+    private async mark(query) {
+        const searchQuery: IDevice = DeviceManager.copyProperties(query);
+        searchQuery.status = Status.BUSY;
+        searchQuery.busySince = Date.now();
+        searchQuery.info = query.info;
+
+        const result = await this._unitOfWork.devices.update(searchQuery.token, searchQuery);
+
+        return searchQuery;
+    }
+
+    private async unmark(query) {
+        const searchQuery: IDevice = DeviceManager.copyProperties(query);
+        searchQuery.busySince = -1;
+        searchQuery.info = undefined;
+        searchQuery.status = Status.SHUTDOWN;
+        const result = await this._unitOfWork.devices.update(searchQuery.token, searchQuery);
+
+        return result;
+    }
+
     private async refreshDb(query) {
         if (this._useLocalRepository) {
             return;
@@ -184,7 +212,8 @@ export class DeviceManager {
     private static copyProperties(from: IDevice, to: IDevice = { platform: undefined, token: undefined, name: undefined, type: undefined }) {
         Object.getOwnPropertyNames(from).forEach((prop) => {
             if (from[prop]) {
-                to[prop] = from[prop];
+                const propName = prop.startsWith('_') ? prop.replace('_', '') : prop;
+                to[propName] = from[prop];
             }
         });
 
