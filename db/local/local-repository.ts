@@ -51,7 +51,7 @@ export class LocalRepository<T> implements IRepository<T> {
     }
 
     private async filter(query: any) {
-        const status = query? query.status : undefined;
+        const status = query ? query.status : undefined;
         const check = status === Status.BUSY;
         if (check) {
             query.status = Status.BOOTED;
@@ -59,17 +59,15 @@ export class LocalRepository<T> implements IRepository<T> {
         const devices = await DeviceController.getDivices(query);
         query.status = status;
         let filteredDevices = new Array();
-        if (query.status) {
-            devices.forEach((device) => {
-                const d = LocalRepository.getInfo(device);
-                device.status = d.status;
-                if (query.status && device.status === query.status) {
-                    filteredDevices.push(d);
-                }
-            });
-        } else {
-            filteredDevices = devices;
-        }
+        devices.forEach((device) => {
+            const d = LocalRepository.getInfo(device);
+            device.status = d.status;
+            if (query || query.status && device.status === query.status) {
+                filteredDevices.push(d);
+            } else if (!query || !query.status) {
+                filteredDevices.push(d);
+            }
+        });
 
         return filteredDevices;
     }
@@ -91,7 +89,7 @@ export class LocalRepository<T> implements IRepository<T> {
 
     public dropDb() {
         removeFilesRecursive(resolveFiles(DEVICES_INFO_DIR));
-        
+
         return null;
     }
 
@@ -146,7 +144,8 @@ export class LocalRepository<T> implements IRepository<T> {
         const to: Device = new Device(undefined, undefined, undefined, undefined, undefined, undefined);
         Object.getOwnPropertyNames(from).forEach((prop) => {
             if (from[prop]) {
-                const propName = prop.startsWith('_') ? prop.replace('_', '') : prop;
+                // const propName = prop.startsWith('_') ? prop.replace('_', '') : prop;
+                const propName = prop;
                 to[propName] = from[prop];
             }
         });
