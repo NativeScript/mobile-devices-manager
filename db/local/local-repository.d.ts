@@ -2,6 +2,7 @@ import { IRepository } from '../interfaces/repository';
 export declare class LocalRepository<T> implements IRepository<T> {
     constructor();
     find(query: any): Promise<Array<T>>;
+    findByToken(token: any): Promise<T>;
     findSingle(item: any): Promise<T>;
     private filter(query);
     update(token: string, obj: any): Promise<void>;

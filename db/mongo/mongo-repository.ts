@@ -29,6 +29,15 @@ export class MongoRepository<T extends Document> implements IRepository<T> {
         return array;
     }
 
+    public async findByToken(token): Promise<T> {
+        const result = await this._entitySet.findOne({ token: token });
+        if (!result) {
+            return null;
+        }
+
+        return result;
+    }
+
     public async findSingle(query): Promise<T> {
         const result = await this._entitySet.findOne(query);
         if (!result) {

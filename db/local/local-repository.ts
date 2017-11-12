@@ -18,6 +18,7 @@ import {
     Status,
     DeviceType
 } from 'mobile-devices-controller';
+import { Stats } from 'fs';
 
 const DEVICE_INFO_PACKAGE_JSON = "info.json";
 const DEVICES_INFO_DIR = "~/devices-info"
@@ -25,6 +26,7 @@ const DEVICES_INFO_DIR = "~/devices-info"
 export class LocalRepository<T> implements IRepository<T> {
 
     constructor() {
+        this.dropDb();
     }
 
     public async find(query): Promise<Array<T>> {
@@ -38,18 +40,32 @@ export class LocalRepository<T> implements IRepository<T> {
         return idevices;
     }
 
+    public async findByToken(token): Promise<T> {
+        const devices = await this.find({ token: token });
+        return devices.length > 0 ? devices[0] : null;
+    }
+
     public async findSingle(item: any): Promise<T> {
         const devices = await this.find(item);
         return devices.length > 0 ? devices[0] : null;
     }
 
     private async filter(query: any) {
+        const status = query? query.status : undefined;
+        const check = status === Status.BUSY;
+        if (check) {
+            query.status = Status.BOOTED;
+        }
         const devices = await DeviceController.getDivices(query);
-        let filteredDevices = null;
+        query.status = status;
+        let filteredDevices = new Array();
         if (query.status) {
-            filteredDevices = devices.filter((device) => {
-                LocalRepository.getInfo(device);
-                return device.status === query.status;
+            devices.forEach((device) => {
+                const d = LocalRepository.getInfo(device);
+                device.status = d.status;
+                if (query.status && device.status === query.status) {
+                    filteredDevices.push(d);
+                }
             });
         } else {
             filteredDevices = devices;
@@ -74,6 +90,8 @@ export class LocalRepository<T> implements IRepository<T> {
     }
 
     public dropDb() {
+        removeFilesRecursive(resolveFiles(DEVICES_INFO_DIR));
+        
         return null;
     }
 
@@ -105,11 +123,11 @@ export class LocalRepository<T> implements IRepository<T> {
     private static setInfo(device: IDevice): IDevice {
         const storage = LocalRepository.getStorageDir(device.token);
         if (!storage || !fileExists(storage)) {
-            DeviceController.kill(device);
             mkDir(storage);
         }
 
         if (device.status === Status.SHUTDOWN) {
+            DeviceController.kill(device);
             removeFilesRecursive(storage);
             return device;
         }
@@ -124,7 +142,7 @@ export class LocalRepository<T> implements IRepository<T> {
         writeFileToJson(fileInfo, json);
     }
 
-    private static copyProperties(from: any) :Device {
+    private static copyProperties(from: any): Device {
         const to: Device = new Device(undefined, undefined, undefined, undefined, undefined, undefined);
         Object.getOwnPropertyNames(from).forEach((prop) => {
             if (from[prop]) {

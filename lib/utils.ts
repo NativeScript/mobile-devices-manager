@@ -58,9 +58,7 @@ export function resolve(mainPath, ...args) {
     }
 
     let fullPath = mainPath;
-    args.forEach(p => {
-        fullPath = resolve(fullPath, p);
-    });
+    args.forEach((p) => fullPath = path.resolve(fullPath, p));
     return fullPath;
 }
 
