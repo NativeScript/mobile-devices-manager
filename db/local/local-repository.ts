@@ -60,6 +60,7 @@ export class LocalRepository<T> implements IRepository<T> {
         query.status = status;
         let filteredDevices = new Array();
         devices.forEach((device) => {
+            // console.log("DEVCIE", device);
             const d = LocalRepository.getInfo(device);
             device.status = d.status;
             if (query || query.status && device.status === query.status) {
@@ -136,7 +137,7 @@ export class LocalRepository<T> implements IRepository<T> {
     private static writeToStorage(device: IDevice) {
         const tempFile = LocalRepository.getStorageDir(device.token);
         const fileInfo = resolveFiles(tempFile, DEVICE_INFO_PACKAGE_JSON);
-        const json = LocalRepository.copyProperties(device).toJson();
+        const json = LocalRepository.copyProperties(device);
         writeFileToJson(fileInfo, json);
     }
 
@@ -145,7 +146,7 @@ export class LocalRepository<T> implements IRepository<T> {
         Object.getOwnPropertyNames(from).forEach((prop) => {
             if (from[prop]) {
                 // const propName = prop.startsWith('_') ? prop.replace('_', '') : prop;
-                const propName = prop;
+                const propName = prop.startsWith("_") ? prop : "_" + prop;
                 to[propName] = from[prop];
             }
         });
