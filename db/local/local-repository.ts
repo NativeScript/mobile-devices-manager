@@ -19,7 +19,7 @@ import {
     DeviceType
 } from 'mobile-devices-controller';
 import { Stats } from 'fs';
-
+ 
 const DEVICE_INFO_PACKAGE_JSON = "info.json";
 const DEVICES_INFO_DIR = "~/devices-info"
 
