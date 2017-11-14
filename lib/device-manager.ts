@@ -131,40 +131,14 @@ export class DeviceManager {
         updateQuery.startedAt = -1;
         updateQuery.busySince = -1;
 
-        if (this._useLocalRepository) {
-            IOSController.killAll();
-            AndroidController.killAll();
-            this.refreshData(query, updateQuery);
-            return;
-        }
+        const devices = await this._unitOfWork.devices.find(query);
+        devices.forEach(async (device) => {
+            await DeviceController.kill(device);
 
-        if (!query || (!query.type && query.platform)) {
-            await this._unitOfWork.devices.dropDb();
-            IOSController.killAll();
-            await this.refreshData({ platform: Platform.IOS }, updateQuery);
-            AndroidController.killAll();
-            await this.refreshData({ platform: Platform.IOS }, updateQuery);
-            return;
-        } else if (query) {
-            if (Object.getOwnPropertyNames(query).length === 1 && query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR) {
-                IOSController.killAll();
-                query.platform = Platform.IOS;
-                query.type = DeviceType.SIMULATOR;
-            } else if (Object.getOwnPropertyNames(query).length === 1 && query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR) {
-                AndroidController.killAll();
-                query.platform = Platform.ANDROID;
-                query.type = DeviceType.EMULATOR;
-            } else {
-                const devices = await this._unitOfWork.devices.find(updateQuery);
-                devices.forEach(async (device) => {
-                    await DeviceController.kill(device);
+            const log = await this._unitOfWork.devices.update(device.token, updateQuery);
+        });
 
-                    const log = await this._unitOfWork.devices.update(device.token, updateQuery);
-                });
-            }
-        }
-
-        await this.refreshData(query, updateQuery);
+        return devices;
     }
 
     public async refreshData(query, updateQuery) {

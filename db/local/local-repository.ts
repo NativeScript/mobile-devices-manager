@@ -19,7 +19,7 @@ import {
     DeviceType
 } from 'mobile-devices-controller';
 import { Stats } from 'fs';
- 
+
 const DEVICE_INFO_PACKAGE_JSON = "info.json";
 const DEVICES_INFO_DIR = "~/devices-info"
 
@@ -65,7 +65,7 @@ export class LocalRepository<T> implements IRepository<T> {
             device.status = d.status;
             if (query || query.status && device.status === query.status) {
                 filteredDevices.push(d);
-            } else if (!query || !query.status) {
+            } else if (!query && !query.status) {
                 filteredDevices.push(d);
             }
         });
@@ -101,7 +101,7 @@ export class LocalRepository<T> implements IRepository<T> {
 
     private static getInfo(device: IDevice): IDevice {
         const storage = LocalRepository.getStorageDir(device.token);
-        if (!storage || !fileExists(storage)) {
+        if (!storage || !fileExists(storage) || device.status === Status.SHUTDOWN ) {
             DeviceController.kill(device);
             device.status = Status.SHUTDOWN;
 

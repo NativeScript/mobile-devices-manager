@@ -8,7 +8,7 @@ export declare class DeviceManager {
     subscribeDevice(query: any): Promise<IDevice>;
     unSubscribeDevice(query: any): Promise<IDevice>;
     update(searchQuery: any, udpateQuery: any): Promise<any[]>;
-    killDevices(query?: any): Promise<void>;
+    killDevices(query?: any): Promise<IDevice[]>;
     refreshData(query: any, updateQuery: any): Promise<IDevice[]>;
     checkDeviceStatus(maxUsageTime: any): void;
     private mark(query);
