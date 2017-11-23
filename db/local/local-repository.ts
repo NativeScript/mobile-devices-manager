@@ -65,7 +65,7 @@ export class LocalRepository<T> implements IRepository<T> {
             device.status = d.status || d['_status'];
             if (query && query.status && device.status === query.status) {
                 filteredDevices.push(d);
-            } else if (!query && !query.status) {
+            } else if (!query || !query.status) {
                 filteredDevices.push(d);
             }
         });

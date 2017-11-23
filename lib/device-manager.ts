@@ -13,7 +13,7 @@ import {
 import { debug } from "util";
 import { Stats } from "fs";
 
-export class DeviceManager {
+export class DeviceManager { 
 
     constructor(private _unitOfWork: IUnitOfWork, private _useLocalRepository = true) {
     }

@@ -1,5 +1,10 @@
 import { spawnSync } from "child_process";
 import * as path from "path";
+import { IUnitOfWork } from "../db/interfaces/unit-of-work";
+import { LocalUnitOfWork } from "../db/local/local-unit-of-work";
+import { MongoUnitOfWork } from "../db/mongo/mongodb-unit-of-work";
+import { IRepository } from "../db/interfaces/repository";
+import { DeviceManager } from "./device-manager";
 
 import {
     existsSync,
@@ -11,6 +16,19 @@ import {
     unlinkSync,
     readdirSync
 } from "fs";
+
+export function getDeviceManager(constantns?) {
+    const unitOfWork: IUnitOfWork = constantns.useMongoDB ? new MongoUnitOfWork() : new LocalUnitOfWork();
+    if (constantns.verbose) {
+        console.log("", unitOfWork);
+    }
+    const deviceManager = new DeviceManager(unitOfWork);
+    if (constantns.verbose) {
+        console.log("", deviceManager);
+    }
+
+    return deviceManager;
+}
 
 export function executeCommand(args, cwd?): string {
     cwd = cwd || process.cwd();
