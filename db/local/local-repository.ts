@@ -65,7 +65,7 @@ export class LocalRepository<T> implements IRepository<T> {
             device.status = d.status || d['_status'];
             if (query && query.status && device.status === query.status) {
                 filteredDevices.push(d);
-            } else if (!query || !query.status) {
+            } else if (!query && !query.status) {
                 filteredDevices.push(d);
             }
         });
@@ -101,7 +101,7 @@ export class LocalRepository<T> implements IRepository<T> {
 
     private static getInfo(device: IDevice): IDevice {
         const storage = LocalRepository.getStorageDir(device.token);
-        if (!storage || !fileExists(storage)) {
+        if (!storage || !fileExists(storage) || device.status === Status.SHUTDOWN ) {
             DeviceController.kill(device);
             device.status = Status.SHUTDOWN;
 
