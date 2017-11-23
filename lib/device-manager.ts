@@ -19,7 +19,9 @@ export class DeviceManager {
     }
 
     public async boot(query, count, shouldUpdate = true) {
-        query.platform = query.platform ? query.platform : (query.type === DeviceType.EMULATOR ? Platform.ANDROID : Platform.IOS);
+        if (!query.platform) {
+            query.platform = query.platform ? query.platform : (query.type === DeviceType.EMULATOR ? Platform.ANDROID : Platform.IOS);
+        }
         let simulators =
             await this._unitOfWork.devices.find(query);
 
@@ -27,7 +29,7 @@ export class DeviceManager {
         const startedDevices = new Array<IDevice>();
         for (var index = 0; index < maxDevicesToBoot; index++) {
             let device: IDevice = simulators[index];
-            device = await DeviceController.startDevice(device);
+            device = await DeviceController.startDevice(DeviceManager.copyProperties(device))   ;
             if (shouldUpdate) {
                 const result = await this._unitOfWork.devices.update(device.token, device);
             }
@@ -64,6 +66,7 @@ export class DeviceManager {
                     delete deviceToBoot.info;
                     delete deviceToBoot.busySince;
                     delete deviceToBoot.startedAt;
+                    delete deviceToBoot.config;
                     const bootedDevice = (await this.boot(deviceToBoot, 1, false))[0];
                     device.token = bootedDevice.token;
                     device.startedAt = bootedDevice.startedAt;
@@ -72,6 +75,7 @@ export class DeviceManager {
                 }
 
                 if (!device) {
+                    delete searchQuery.status;
                     await this.unmark(searchQuery);
                 }
             }
@@ -134,8 +138,7 @@ export class DeviceManager {
         if (this._useLocalRepository) {
             IOSController.killAll();
             AndroidController.killAll();
-            this.refreshData(query, updateQuery);
-            return;
+            return this.refreshData(query, updateQuery);
         }
 
         if (!query || (!query.type && query.platform)) {
@@ -144,7 +147,7 @@ export class DeviceManager {
             await this.refreshData({ platform: Platform.IOS }, updateQuery);
             AndroidController.killAll();
             await this.refreshData({ platform: Platform.IOS }, updateQuery);
-            return;
+            return this._unitOfWork.devices.find(updateQuery);
         } else if (query) {
             if (Object.getOwnPropertyNames(query).length === 1 && query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR) {
                 IOSController.killAll();
@@ -158,20 +161,18 @@ export class DeviceManager {
                 const devices = await this._unitOfWork.devices.find(updateQuery);
                 devices.forEach(async (device) => {
                     await DeviceController.kill(device);
-
                     const log = await this._unitOfWork.devices.update(device.token, updateQuery);
                 });
             }
+            await this.refreshData(query, updateQuery);
         }
-
-        await this.refreshData(query, updateQuery);
     }
 
     public async refreshData(query, updateQuery) {
         if (this._useLocalRepository) {
             await this._unitOfWork.devices.dropDb();
         } else {
-            (await DeviceController.getDivices(query)).forEach(async (device) => {
+            (await DeviceController.getDevices(query)).forEach(async (device) => {
                 const d = await this._unitOfWork.devices.findByToken(device.token);
                 if (d) {
                     await this._unitOfWork.devices.update(device.token, updateQuery);
@@ -236,7 +237,7 @@ export class DeviceManager {
         });
     }
 
-    private static copyProperties(from: IDevice, to: IDevice = { platform: undefined, token: undefined, name: undefined, type: undefined }) {
+    public static copyProperties(from: IDevice, to: IDevice = { platform: undefined, token: undefined, name: undefined, type: undefined }) {
         if (!from) {
             return to;
         }

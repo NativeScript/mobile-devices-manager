@@ -19,7 +19,7 @@ import {
     DeviceType
 } from 'mobile-devices-controller';
 import { Stats } from 'fs';
- 
+
 const DEVICE_INFO_PACKAGE_JSON = "info.json";
 const DEVICES_INFO_DIR = "~/devices-info"
 
@@ -42,7 +42,7 @@ export class LocalRepository<T> implements IRepository<T> {
 
     public async findByToken(token): Promise<T> {
         const devices = await this.find({ token: token });
-        return devices.length > 0 ? devices[0] : null;
+        return devices.length > 0 ? <any>LocalRepository.copyProperties(devices[0]) : null;
     }
 
     public async findSingle(item: any): Promise<T> {
@@ -56,14 +56,14 @@ export class LocalRepository<T> implements IRepository<T> {
         if (check) {
             query.status = Status.BOOTED;
         }
-        const devices = await DeviceController.getDivices(query);
+        const devices = await DeviceController.getDevices(query);
         query.status = status;
         let filteredDevices = new Array();
         devices.forEach((device) => {
             // console.log("DEVCIE", device);
             const d = LocalRepository.getInfo(device);
-            device.status = d.status;
-            if (query || query.status && device.status === query.status) {
+            device.status = d.status || d['_status'];
+            if (query && query.status && device.status === query.status) {
                 filteredDevices.push(d);
             } else if (!query || !query.status) {
                 filteredDevices.push(d);
@@ -74,7 +74,7 @@ export class LocalRepository<T> implements IRepository<T> {
     }
 
     public async update(token: string, obj: any) {
-        const devices = await DeviceController.getDivices({ "token": token });
+        const devices = await DeviceController.getDevices({ "token": token });
         if (devices && devices.length > 0) {
             LocalRepository.setInfo(obj);
         }
