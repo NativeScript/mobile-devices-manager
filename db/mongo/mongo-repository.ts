@@ -63,44 +63,44 @@ export class MongoRepository<T extends Document> implements IRepository<T> {
     private static copyIDeviceModelToDevice(deviceModel: IDeviceModel, device?: IDevice): IDevice {
         if (!device) {
             device = {
-                name: MongoRepository.stringObjToPrimitiveConverter(deviceModel.name),
-                apiLevel: MongoRepository.stringObjToPrimitiveConverter(deviceModel.apiLevel),
-                type: MongoRepository.stringObjToPrimitiveConverter(deviceModel.type),
-                platform: MongoRepository.stringObjToPrimitiveConverter(deviceModel.platform),
-                token: MongoRepository.stringObjToPrimitiveConverter(deviceModel.token),
-                status: MongoRepository.stringObjToPrimitiveConverter(deviceModel.status),
-                pid: deviceModel.pid,
-                info: deviceModel.info,
-                config: deviceModel.config,
-                busySince: deviceModel.busySince,
-                startedAt: deviceModel.startedAt,
+                name: MongoRepository.stringObjToPrimitiveConverter(deviceModel['name']),
+                apiLevel: MongoRepository.stringObjToPrimitiveConverter(deviceModel["apiLevel"]),
+                type: MongoRepository.stringObjToPrimitiveConverter(deviceModel["type"]),
+                platform: MongoRepository.stringObjToPrimitiveConverter(deviceModel["platform"]),
+                token: MongoRepository.stringObjToPrimitiveConverter(deviceModel["token"]),
+                status: MongoRepository.stringObjToPrimitiveConverter(deviceModel["status"]),
+                pid: deviceModel["pid"],
+                info: deviceModel["info"],
+                config: deviceModel["config"],
+                busySince: deviceModel["busySince"],
+                startedAt: deviceModel["startedAt"],
             }
         } else {
-            device.name = MongoRepository.stringObjToPrimitiveConverter(deviceModel.name);
-            device.pid = deviceModel.pid;
-            device.startedAt = deviceModel.startedAt;
-            device.status = MongoRepository.stringObjToPrimitiveConverter(deviceModel.status);
-            device.token = MongoRepository.stringObjToPrimitiveConverter(deviceModel.token);
-            device.type = MongoRepository.stringObjToPrimitiveConverter(deviceModel.type);
-            device.platform = MongoRepository.stringObjToPrimitiveConverter(deviceModel.platform);
-            device.apiLevel = MongoRepository.stringObjToPrimitiveConverter(deviceModel.apiLevel);
-            device.info = MongoRepository.stringObjToPrimitiveConverter(deviceModel.info);
-            device.config = MongoRepository.stringObjToPrimitiveConverter(deviceModel.config);
+            device.name = MongoRepository.stringObjToPrimitiveConverter(deviceModel["name"]);
+            device.pid = deviceModel["pid"];
+            device.startedAt = deviceModel["startedAt"];
+            device.status = MongoRepository.stringObjToPrimitiveConverter(deviceModel["status"]);
+            device.token = MongoRepository.stringObjToPrimitiveConverter(deviceModel["token"]);
+            device.type = MongoRepository.stringObjToPrimitiveConverter(deviceModel["type"]);
+            device.platform = MongoRepository.stringObjToPrimitiveConverter(deviceModel["platform"]);
+            device.apiLevel = MongoRepository.stringObjToPrimitiveConverter(deviceModel["apiLevel"]);
+            device.info = MongoRepository.stringObjToPrimitiveConverter(deviceModel["info"]);
+            device.config = MongoRepository.stringObjToPrimitiveConverter(deviceModel["config"]);
         }
 
         return device;
     }
 
     private static copyDeviceToIDeviceModel(device: IDevice, deviceModel: IDeviceModel) {
-        deviceModel.name = device.name;
-        deviceModel.pid = device.pid;
-        deviceModel.startedAt = device.startedAt;
-        deviceModel.status = device.status;
-        deviceModel.token = device.token;
-        deviceModel.type = device.type;
-        deviceModel.info = device.info;
-        deviceModel.config = device.config;
-        deviceModel.apiLevel = device.apiLevel;
+        deviceModel["name"] = device.name;
+        deviceModel["pid"] = device.pid;
+        deviceModel["startedAt"] = device.startedAt;
+        deviceModel["status"] = device.status;
+        deviceModel["token"] = device.token;
+        deviceModel["type "] = device.type;
+        deviceModel["info "] = device.info;
+        deviceModel["config"] = device.config;
+        deviceModel["apiLevel"] = device.apiLevel;
     }
 
     private static stringObjToPrimitiveConverter(obj: String) {

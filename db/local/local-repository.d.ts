@@ -14,6 +14,7 @@ export declare class LocalRepository<T> implements IRepository<T> {
     private static setInfo(device);
     private static writeToStorage(device);
     private static copyProperties(from);
+    private static convertIDeviceToQuery(from);
     private static getStorageDir(token);
     private createStorage(token);
 }

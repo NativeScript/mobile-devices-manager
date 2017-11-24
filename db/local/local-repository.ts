@@ -34,7 +34,7 @@ export class LocalRepository<T> implements IRepository<T> {
 
         const idevices = new Array();
         devices.forEach(device => {
-            idevices.push(device);
+            idevices.push(LocalRepository.convertIDeviceToQuery(device));
         });
 
         return idevices;
@@ -42,7 +42,7 @@ export class LocalRepository<T> implements IRepository<T> {
 
     public async findByToken(token): Promise<T> {
         const devices = await this.find({ token: token });
-        return devices.length > 0 ? <any>LocalRepository.copyProperties(devices[0]) : null;
+        return devices.length > 0 ? devices[0] : null;
     }
 
     public async findSingle(item: any): Promise<T> {
@@ -64,9 +64,9 @@ export class LocalRepository<T> implements IRepository<T> {
             const d = LocalRepository.getInfo(device);
             device.status = d.status || d['_status'];
             if (query && query.status && device.status === query.status) {
-                filteredDevices.push(d);
+                filteredDevices.push(LocalRepository.copyProperties(d));
             } else if (!query || !query.status) {
-                filteredDevices.push(d);
+                filteredDevices.push(LocalRepository.copyProperties(d));
             }
         });
 
@@ -101,7 +101,7 @@ export class LocalRepository<T> implements IRepository<T> {
 
     private static getInfo(device: IDevice): IDevice {
         const storage = LocalRepository.getStorageDir(device.token);
-        if (!storage || !fileExists(storage) || device.status === Status.SHUTDOWN ) {
+        if (!storage || !fileExists(storage) || device.status === Status.SHUTDOWN) {
             DeviceController.kill(device);
             device.status = Status.SHUTDOWN;
 
@@ -145,8 +145,8 @@ export class LocalRepository<T> implements IRepository<T> {
         const to: Device = new Device(undefined, undefined, undefined, undefined, undefined, undefined);
         Object.getOwnPropertyNames(from).forEach((prop) => {
             if (from[prop]) {
-                // const propName = prop.startsWith('_') ? prop.replace('_', '') : prop;
-                const propName = prop.startsWith("_") ? prop : "_" + prop;
+                const propName = prop.startsWith('_') ? prop.replace('_', '') : prop;
+                //const propName = prop.startsWith("_") ? prop : "_" + prop;
                 to[propName] = from[prop];
             }
         });
@@ -156,6 +156,19 @@ export class LocalRepository<T> implements IRepository<T> {
                 delete to[prop];
             }
         });
+        return to;
+    }
+
+    private static convertIDeviceToQuery(from: any) {
+        let to: any = {};
+        Object.getOwnPropertyNames(from).forEach((prop) => {
+            if (from[prop]) {
+                const propName = prop.startsWith('_') ? prop.replace('_', '') : prop;
+                //const propName = prop.startsWith("_") ? prop : "_" + prop;
+                to[propName] = from[prop];
+            }
+        });
+
         return to;
     }
 
