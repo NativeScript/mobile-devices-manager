@@ -13,7 +13,7 @@ import {
 import { debug } from "util";
 import { Stats } from "fs";
 
-export class DeviceManager { 
+export class DeviceManager {
 
     constructor(private _unitOfWork: IUnitOfWork, private _useLocalRepository = true) {
     }
@@ -29,7 +29,7 @@ export class DeviceManager {
         const startedDevices = new Array<IDevice>();
         for (var index = 0; index < maxDevicesToBoot; index++) {
             let device: IDevice = simulators[index];
-            device = await DeviceController.startDevice(DeviceManager.copyProperties(device))   ;
+            device = await DeviceController.startDevice(device);
             if (shouldUpdate) {
                 const result = await this._unitOfWork.devices.update(device.token, device);
             }
@@ -40,7 +40,7 @@ export class DeviceManager {
     }
 
     public async subscribeDevice(query): Promise<IDevice> {
-        let searchQuery: IDevice = DeviceManager.copyProperties(query);
+        let searchQuery: IDevice = query;
         delete searchQuery.info;
         searchQuery.status = Status.BOOTED;
 
@@ -61,7 +61,7 @@ export class DeviceManager {
                 if (device) {
                     device.info = query.info;
                     device = await this.mark(device);
-                    const deviceToBoot: IDevice = DeviceManager.copyProperties(device);
+                    const deviceToBoot: IDevice = device;
                     delete deviceToBoot.status;
                     delete deviceToBoot.info;
                     delete deviceToBoot.busySince;
@@ -130,7 +130,7 @@ export class DeviceManager {
     }
 
     public async killDevices(query?) {
-        const updateQuery = DeviceManager.copyProperties(query);
+        const updateQuery = query;
         updateQuery.status = Status.SHUTDOWN;
         updateQuery.startedAt = -1;
         updateQuery.busySince = -1;
@@ -202,7 +202,7 @@ export class DeviceManager {
     }
 
     private async mark(query) {
-        const searchQuery: IDevice = DeviceManager.copyProperties(query);
+        const searchQuery: IDevice = query;
         searchQuery.status = Status.BUSY;
         searchQuery.busySince = Date.now();
         searchQuery.info = query.info;
@@ -213,7 +213,7 @@ export class DeviceManager {
     }
 
     private async unmark(query) {
-        const searchQuery: IDevice = DeviceManager.copyProperties(query);
+        const searchQuery: IDevice = query;
         searchQuery.busySince = -1;
         searchQuery.info = undefined;
         searchQuery.status = Status.SHUTDOWN;
@@ -237,22 +237,22 @@ export class DeviceManager {
         });
     }
 
-    public static copyProperties(from: IDevice, to: IDevice = { platform: undefined, token: undefined, name: undefined, type: undefined }) {
-        if (!from) {
-            return to;
-        }
-        Object.getOwnPropertyNames(from).forEach((prop) => {
-            if (from[prop]) {
-                const propName = prop.startsWith('_') ? prop.replace('_', '') : prop;
-                to[propName] = from[prop];
-            }
-        });
+    // public static copyProperties(from: IDevice, to: IDevice = { platform: undefined, token: undefined, name: undefined, type: undefined }) {
+    //     if (!from) {
+    //         return to;
+    //     }
+    //     Object.getOwnPropertyNames(from).forEach((prop) => {
+    //         if (from[prop]) {
+    //             const propName = prop.startsWith('_') ? prop.replace('_', '') : prop;
+    //             to[propName] = from[prop];
+    //         }
+    //     });
 
-        Object.getOwnPropertyNames(to).forEach((prop) => {
-            if (!to[prop]) {
-                delete to[prop];
-            }
-        });
-        return to;
-    }
+    //     Object.getOwnPropertyNames(to).forEach((prop) => {
+    //         if (!to[prop]) {
+    //             delete to[prop];
+    //         }
+    //     });
+    //     return to;
+    // }
 }

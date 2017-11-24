@@ -14,5 +14,4 @@ export declare class DeviceManager {
     private mark(query);
     private unmark(query);
     private createModel(device);
-    static copyProperties(from: IDevice, to?: IDevice): any;
 }
