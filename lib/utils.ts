@@ -206,9 +206,14 @@ export function getAllFileNames(folder: string) {
 
 export function mkDir(dir) {
     let mainPath: string = null;
+    let prefix = "";
     dir.split(path.sep).forEach(element => {
+        if (!element || element === "") {
+            prefix = "/";
+            return;
+        }
         if (mainPath === null) {
-            mainPath = element;
+            mainPath = prefix + element;
         } else {
             mainPath += path.sep + element;
         }

@@ -5,7 +5,7 @@ export declare class LocalRepository<T> implements IRepository<T> {
     findByToken(token: any): Promise<T>;
     findSingle(item: any): Promise<T>;
     private filter(query);
-    update(token: string, obj: any): Promise<void>;
+    update(token: string, obj: any): Promise<any>;
     add(item: T): Promise<void>;
     remove(item: any): Promise<void>;
     dropDb(): any;

@@ -76,8 +76,11 @@ export class LocalRepository<T> implements IRepository<T> {
     public async update(token: string, obj: any) {
         const devices = await DeviceController.getDevices({ "token": token });
         if (devices && devices.length > 0) {
+            obj.token = token;
             LocalRepository.setInfo(obj);
         }
+
+        return await DeviceController.getDevices({ "token": token });
     }
 
     public async add(item: T) {

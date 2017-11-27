@@ -106,27 +106,8 @@ export class DeviceManager {
     }
 
     /// should be tested. 
-    public async update(searchQuery, udpateQuery) {
-        const searchedObj = {};
-        searchQuery.split("&").forEach(element => {
-            let delimiter = "="
-            if (element.includes(":")) {
-                delimiter = ":";
-            }
-
-            const args = element.split(delimiter);
-            searchedObj[args[0]] = args[1];
-        });
-
-        const simulators = await this._unitOfWork.devices.find(<IDevice>searchedObj);
-        const updatedSimulators = new Array();
-        for (var index = 0; index < simulators.length; index++) {
-            const sim = simulators[index];
-            await this._unitOfWork.devices.update(sim.token, udpateQuery)
-            updatedSimulators.push(await this._unitOfWork.devices.find(<IDevice>{ "token": sim.token }));
-        }
-
-        return updatedSimulators;
+    public async update(token, udpateQuery) {
+        return await this._unitOfWork.devices.update(token, udpateQuery)
     }
 
     public async killDevices(query?) {
