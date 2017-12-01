@@ -164,7 +164,6 @@ export class DeviceManager {
                 } else {
                     await this.createModel(device);
                 }
-
             });
         }
 
@@ -204,7 +203,7 @@ export class DeviceManager {
         searchQuery.status = Status.SHUTDOWN;
         const result = await this._unitOfWork.devices.update(searchQuery.token, searchQuery);
 
-        return result;
+        return searchQuery;
     }
 
     private async createModel(device: IDevice) {
