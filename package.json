@@ -1,7 +1,7 @@
 {
   "name": "mobile-devices-manager",
   "description": "Comunicate with emulators, simulators and real devices",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "SvetoslavTsenov",
   "bin": {
     "nsmdm": "./bin/nsmdm"
@@ -12,9 +12,7 @@
     "mongoose": "^4.6.7",
     "morgan": "^1.7.0",
     "pug": "^2.0.0-beta6",
-    "q": "^1.4.1"
-  },
-  "devDependencies": {
+    "q": "^1.4.1",
     "@types/body-parser": "0.0.33",
     "@types/chai": "^3.4.34",
     "@types/mocha": "^2.2.32",
