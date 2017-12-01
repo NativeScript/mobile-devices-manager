@@ -31,5 +31,5 @@ export async function handler(yargs) {
 
 export async function subscribe(yargs) {
     const manager = getDeviceManager(constantns);
-    return await manager.subscribeDevice({ name: yargs.name, platform: yargs.platform, apiLevel: yargs.apiLevel, info: yargs.info });
+    return await manager.subscribeForDevice({ name: yargs.name, platform: yargs.platform, apiLevel: yargs.apiLevel, info: yargs.info });
 }

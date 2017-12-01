@@ -4,11 +4,11 @@
   "version": "1.0.0",
   "author": "SvetoslavTsenov",
   "bin": {
-    "mobileD": "./bin/mobileD"
+    "nsmdm": "./bin/nsmdm"
   },
   "main": "index.js",
   "dependencies": {
-    "mobile-devices-controller": "^1.1.8",
+    "mobile-devices-controller": "^2.0.0",
     "mongoose": "^4.6.7",
     "morgan": "^1.7.0",
     "pug": "^2.0.0-beta6",
@@ -29,6 +29,7 @@
     "yargs": "^10.0.3"
   },
   "scripts": {
+    "prepare": "tsc",
     "watch": "tsc --watch",
     "mongodb": "mongod"
   }

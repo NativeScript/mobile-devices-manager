@@ -22,8 +22,7 @@ export class DeviceManager {
         if (!query.platform) {
             query.platform = query.platform ? query.platform : (query.type === DeviceType.EMULATOR ? Platform.ANDROID : Platform.IOS);
         }
-        let simulators =
-            await this._unitOfWork.devices.find(query);
+        let simulators = await this._unitOfWork.devices.find(query);
 
         const maxDevicesToBoot = Math.min(simulators.length, parseInt(count || 1));
         const startedDevices = new Array<IDevice>();
@@ -39,14 +38,19 @@ export class DeviceManager {
         return startedDevices;
     }
 
-    public async subscribeDevice(query): Promise<IDevice> {
+    public async subscribeForDevice(query): Promise<IDevice> {
+        const shouldRestartDevice = false || query.restart;
+        delete query.restart;
         let searchQuery: IDevice = query;
         delete searchQuery.info;
         searchQuery.status = Status.BOOTED;
 
-        // searching for already booted devices
+        // get already booted device in order to reuse
         let device = await this._unitOfWork.devices.findSingle(searchQuery);
-
+        if (shouldRestartDevice && device) {
+            DeviceController.kill(device);
+            device = undefined;
+        }
         let busyDevices = 0;
         let count = ((query.type === DeviceType.EMULATOR || query.platform === Platform.ANDROID) ? process.env['MAX_EMU_COUNT'] : process.env['MAX_SIM_COUNT']) || 1;
 
@@ -91,7 +95,7 @@ export class DeviceManager {
         return device;
     }
 
-    public async unSubscribeDevice(query): Promise<IDevice> {
+    public async unsubscribeFromDevice(query): Promise<IDevice> {
         const device = await this._unitOfWork.devices.findByToken(query.token);
         if (device) {
             device.busySince = -1;
@@ -111,7 +115,7 @@ export class DeviceManager {
     }
 
     public async killDevices(query?) {
-        const updateQuery = query;
+        const updateQuery = query || {};
         updateQuery.status = Status.SHUTDOWN;
         updateQuery.startedAt = -1;
         updateQuery.busySince = -1;
@@ -127,7 +131,7 @@ export class DeviceManager {
             IOSController.killAll();
             await this.refreshData({ platform: Platform.IOS }, updateQuery);
             AndroidController.killAll();
-            await this.refreshData({ platform: Platform.IOS }, updateQuery);
+            await this.refreshData({ platform: Platform.ANDROID }, updateQuery);
             return this._unitOfWork.devices.find(updateQuery);
         } else if (query) {
             if (Object.getOwnPropertyNames(query).length === 1 && query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR) {
@@ -153,7 +157,7 @@ export class DeviceManager {
         if (this._useLocalRepository) {
             await this._unitOfWork.devices.dropDb();
         } else {
-            (await DeviceController.getDevices(query)).forEach(async (device) => {
+            await (await DeviceController.getDevices(query)).forEach(async (device) => {
                 const d = await this._unitOfWork.devices.findByToken(device.token);
                 if (d) {
                     await this._unitOfWork.devices.update(device.token, updateQuery);
@@ -204,7 +208,7 @@ export class DeviceManager {
     }
 
     private async createModel(device: IDevice) {
-        await this._unitOfWork.devices.add({
+        return await this._unitOfWork.devices.add({
             name: device.name,
             token: device.token,
             status: device.status,
@@ -217,23 +221,4 @@ export class DeviceManager {
             apiLevel: device.apiLevel
         });
     }
-
-    // public static copyProperties(from: IDevice, to: IDevice = { platform: undefined, token: undefined, name: undefined, type: undefined }) {
-    //     if (!from) {
-    //         return to;
-    //     }
-    //     Object.getOwnPropertyNames(from).forEach((prop) => {
-    //         if (from[prop]) {
-    //             const propName = prop.startsWith('_') ? prop.replace('_', '') : prop;
-    //             to[propName] = from[prop];
-    //         }
-    //     });
-
-    //     Object.getOwnPropertyNames(to).forEach((prop) => {
-    //         if (!to[prop]) {
-    //             delete to[prop];
-    //         }
-    //     });
-    //     return to;
-    // }
 }

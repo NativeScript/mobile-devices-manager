@@ -14,7 +14,7 @@ const config = (() => {
     const config = {
         verbose: options.verbose,
         localStorage: options.localStorage,
-        mongoDb: options.mongoDb
+        mongoDb: options.mongoDb || process.env['USE_MONOGDB_STORAGE']
     };
 
     return config;
