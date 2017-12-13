@@ -48,8 +48,9 @@ export class MongoRepository<T extends Document> implements IRepository<T> {
     }
 
     public async update(token: string, values: T) {
-        const device = await this._entitySet.findOne({ "token": token });
-        return await this._entitySet.update(device, values);
+        const device: IDeviceModel = await this._entitySet.findOne({ "token": token });
+        const result = await this._entitySet.findByIdAndUpdate(device.id, MongoRepository.copyDeviceToIDeviceModel(values, device));
+        return result;
     }
 
     public async remove(item) {
@@ -101,6 +102,7 @@ export class MongoRepository<T extends Document> implements IRepository<T> {
         deviceModel["info "] = device.info;
         deviceModel["config"] = device.config;
         deviceModel["apiLevel"] = device.apiLevel;
+        return deviceModel;
     }
 
     private static stringObjToPrimitiveConverter(obj: String) {

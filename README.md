@@ -1,4 +1,4 @@
-# Server to control simulatos, emulators and real devices.
+# Serves to control simulatos, emulators and real devices.
     Purpose of this tool is to manage all devices on а machine.
     This is very convinience when a multiple builds are triggered.
 
