@@ -55,7 +55,6 @@ export class DeviceManager {
         let count = ((query.type === DeviceType.EMULATOR || query.platform === Platform.ANDROID) ? process.env['MAX_EMU_COUNT'] : process.env['MAX_SIM_COUNT']) || 1;
 
         if (!device || device === null) {
-
             searchQuery.status = Status.BUSY;
             busyDevices = (await this._unitOfWork.devices.find(searchQuery)).length;
 
@@ -65,12 +64,12 @@ export class DeviceManager {
                 if (device) {
                     device.info = query.info;
                     device = await this.mark(device);
-                    const deviceToBoot: IDevice = device;
-                    delete deviceToBoot.status;
-                    delete deviceToBoot.info;
-                    delete deviceToBoot.busySince;
-                    delete deviceToBoot.startedAt;
-                    delete deviceToBoot.config;
+                    const deviceToBoot: IDevice = {
+                        token: device.token,
+                        name: device.name,
+                        apiLevel: device.apiLevel,
+                        platform: device.platform
+                    };
                     const bootedDevice = (await this.boot(deviceToBoot, 1, false))[0];
                     device.token = bootedDevice.token;
                     device.startedAt = bootedDevice.startedAt;
@@ -160,7 +159,15 @@ export class DeviceManager {
             await (await DeviceController.getDevices(query)).forEach(async (device) => {
                 const d = await this._unitOfWork.devices.findByToken(device.token);
                 if (d) {
-                    await this._unitOfWork.devices.update(device.token, updateQuery);
+                    let udpateQueryCopy = updateQuery;
+                    if(!udpateQueryCopy || !udpateQueryCopy.hasOwnProperty()){
+                        udpateQueryCopy = device;
+                        delete updateQuery.token;
+                        delete updateQuery.name;
+                        delete updateQuery.type;
+                        delete updateQuery.apiLevel;
+                    }
+                    await this._unitOfWork.devices.update(device.token, udpateQueryCopy);
                 } else {
                     await this.createModel(device);
                 }
