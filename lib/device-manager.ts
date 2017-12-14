@@ -125,7 +125,7 @@ export class DeviceManager {
             return this.refreshData(query, updateQuery);
         }
 
-        if (!query || (!query.type && query.platform)) {
+        if (!query || (!query.type && !query.platform)) {
             await this._unitOfWork.devices.dropDb();
             IOSController.killAll();
             await this.refreshData({ platform: Platform.IOS }, updateQuery);
