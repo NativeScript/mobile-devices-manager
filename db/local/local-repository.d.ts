@@ -1,11 +1,12 @@
 import { IRepository } from '../interfaces/repository';
+import { IDevice } from 'mobile-devices-controller';
 export declare class LocalRepository<T> implements IRepository<T> {
     constructor();
     find(query: any): Promise<Array<T>>;
     findByToken(token: any): Promise<T>;
     findSingle(item: any): Promise<T>;
     private filter(query);
-    update(token: string, obj: any): Promise<any>;
+    update(token: string, obj: any): Promise<IDevice[]>;
     add(item: T): Promise<void>;
     remove(item: any): Promise<void>;
     dropDb(): any;

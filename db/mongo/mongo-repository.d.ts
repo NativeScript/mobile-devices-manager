@@ -7,7 +7,7 @@ export declare class MongoRepository<T extends Document> implements IRepository<
     find(query: T): Promise<Array<T>>;
     findByToken(token: any): Promise<T>;
     findSingle(query: any): Promise<T>;
-    update(token: string, values: T): Promise<T>;
+    update(token: string, values: any): Promise<T>;
     remove(item: any): Promise<void>;
     dropDb(): Promise<void>;
     private static copyIDeviceModelToDevice(deviceModel, device?);

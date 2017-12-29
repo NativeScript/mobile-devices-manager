@@ -47,9 +47,9 @@ export class MongoRepository<T extends Document> implements IRepository<T> {
         return result;
     }
 
-    public async update(token: string, values: T) {
-        const device: IDeviceModel = await this._entitySet.findOne({ "token": token });
-        const result = await this._entitySet.findByIdAndUpdate(device.id, MongoRepository.copyDeviceToIDeviceModel(values, device));
+    public async update(token: string, values: any) {
+        const device: any = await this._entitySet.findOne({ "token": token });
+        const result = await this._entitySet.findByIdAndUpdate(device.id, MongoRepository.copyDeviceToIDeviceModel(<IDevice>values, device));
         return result;
     }
 

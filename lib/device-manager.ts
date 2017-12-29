@@ -66,6 +66,7 @@ export class DeviceManager {
                     device = await this.mark(device);
                     const deviceToBoot: IDevice = {
                         token: device.token,
+                        type: query.type,
                         name: device.name,
                         apiLevel: device.apiLevel,
                         platform: device.platform
