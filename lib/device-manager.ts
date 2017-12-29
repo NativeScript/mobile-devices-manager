@@ -115,7 +115,7 @@ export class DeviceManager {
     }
 
     public async killDevices(query?) {
-        const updateQuery = query || {};
+        const updateQuery = DeviceManager.convertIDeviceToQuery(query);
         updateQuery.status = Status.SHUTDOWN;
         updateQuery.startedAt = -1;
         updateQuery.busySince = -1;
@@ -143,7 +143,7 @@ export class DeviceManager {
                 query.platform = Platform.ANDROID;
                 query.type = DeviceType.EMULATOR;
             } else {
-                const devices = await this._unitOfWork.devices.find(updateQuery);
+                const devices = await this._unitOfWork.devices.find(query);
                 devices.forEach(async (device) => {
                     await DeviceController.kill(device);
                     const log = await this._unitOfWork.devices.update(device.token, updateQuery);
@@ -227,5 +227,18 @@ export class DeviceManager {
             config: device.config,
             apiLevel: device.apiLevel
         });
+    }
+
+    private static convertIDeviceToQuery(from: any) {
+        let to: any = {};
+        Object.getOwnPropertyNames(from).forEach((prop) => {
+            if (from[prop]) {
+                const propName = prop.startsWith('_') ? prop.replace('_', '') : prop;
+                //const propName = prop.startsWith("_") ? prop : "_" + prop;
+                to[propName] = from[prop];
+            }
+        });
+
+        return to;
     }
 }
