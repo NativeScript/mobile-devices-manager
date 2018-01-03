@@ -41,7 +41,7 @@ export class DeviceManager {
     public async subscribeForDevice(query): Promise<IDevice> {
         const shouldRestartDevice = false || query.restart;
         delete query.restart;
-        let searchQuery: IDevice = query;
+        let searchQuery: IDevice = DeviceManager.convertIDeviceToQuery(query);
         delete searchQuery.info;
         searchQuery.status = Status.BOOTED;
 
@@ -66,7 +66,7 @@ export class DeviceManager {
                     device = await this.mark(device);
                     const deviceToBoot: IDevice = {
                         token: device.token,
-                        type: query.type,
+                        type: device.type,
                         name: device.name,
                         apiLevel: device.apiLevel,
                         platform: device.platform
