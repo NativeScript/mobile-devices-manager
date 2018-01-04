@@ -1,7 +1,7 @@
 {
   "name": "mobile-devices-manager",
   "description": "Comunicate with emulators, simulators and real devices",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "author": "SvetoslavTsenov",
   "bin": {
     "nsmdm": "./bin/nsmdm"

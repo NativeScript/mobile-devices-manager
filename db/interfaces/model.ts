@@ -1,6 +1,6 @@
-import { IModel } from "./model"
+import { Document } from "mongoose";
 import { IDevice } from "mobile-devices-controller";
 
-export interface IDeviceModel extends IDevice, IModel {
+export interface IModel extends  Document {
   //custom methods for your model would be defined here
 } 

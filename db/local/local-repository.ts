@@ -23,7 +23,7 @@ import { Stats } from 'fs';
 const DEVICE_INFO_PACKAGE_JSON = "info.json";
 const DEVICES_INFO_DIR = resolveFiles((process.env['DEVICE_INFO_STORAGE'] || "~") + "devices-info");
 
-export class LocalRepository<T> implements IRepository<T> {
+export class LocalRepository<T extends IDevice> implements IRepository<T> {
 
     constructor() {
         this.dropDb();
@@ -73,14 +73,14 @@ export class LocalRepository<T> implements IRepository<T> {
         return filteredDevices;
     }
 
-    public async update(token: string, obj: any) {
+    public async update(token: string, obj: T) {
         const devices = await DeviceController.getDevices({ "token": token });
         if (devices && devices.length > 0) {
             obj.token = token;
             LocalRepository.setInfo(obj);
         }
 
-        return await DeviceController.getDevices({ "token": token });
+        return <any>(await DeviceController.getDevices({ "token": token }))[0];
     }
 
     public async add(item: T) {
@@ -97,7 +97,7 @@ export class LocalRepository<T> implements IRepository<T> {
         return null;
     }
 
-    private setDiveceStatus(device: IDevice) {
+    private setDiveceStatus(device: T) {
         const status = LocalRepository.getInfo(device);
         device.status = status.status ? status.status : Status.SHUTDOWN;
     }

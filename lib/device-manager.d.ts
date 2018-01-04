@@ -7,9 +7,10 @@ export declare class DeviceManager {
     boot(query: any, count: any, shouldUpdate?: boolean): Promise<IDevice[]>;
     subscribeForDevice(query: any): Promise<IDevice>;
     unsubscribeFromDevice(query: any): Promise<IDevice>;
-    update(token: any, udpateQuery: any): Promise<any>;
     killDevices(query?: any): Promise<IDevice[]>;
     refreshData(query: any, updateQuery: any): Promise<IDevice[]>;
+    dropdb(): Promise<IDevice[]>;
+    update(token: any, udpateQuery: any): Promise<IDevice>;
     checkDeviceStatus(maxUsageTime: any): void;
     private mark(query);
     private unmark(query);

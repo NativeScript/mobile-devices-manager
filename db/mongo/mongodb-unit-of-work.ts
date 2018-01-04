@@ -17,9 +17,7 @@ export class MongoUnitOfWork implements IUnitOfWork {
         require('mongoose').Promise = require("q").Promise;
     }
 
-    get devices(): IRepository<IDevice> {
-        //await connection.dropDatabase();        
-        
+    get devices(): IRepository<IDeviceModel> {
         if (!this._devices) {
             this._devices = new MongoRepository<IDeviceModel>(this._context.model<IDeviceModel>("Device", schema.device));
         }
