@@ -6,7 +6,7 @@ import { MongoRepository } from "./mongo-repository";
 import * as schema from "./schemas/schema";
 import { IDevice } from "mobile-devices-controller";
 
-const MONGODB_CONNECTION: string = "mongodb://localhost:27017/devices";
+const MONGODB_CONNECTION: string = "mongodb://127.0.0.1:27017/devices";
 
 export class MongoUnitOfWork implements IUnitOfWork {
     private _devices: IRepository<IDeviceModel>;
