@@ -116,7 +116,7 @@ export class DeviceManager {
     }
 
     public async killDevices(query?) {
-        const updateQuery = DeviceManager.convertIDeviceToQuery(query);
+        const updateQuery = DeviceManager.convertIDeviceToQuery(query || {});
         updateQuery.status = Status.SHUTDOWN;
         updateQuery.startedAt = -1;
         updateQuery.busySince = -1;
@@ -155,30 +155,25 @@ export class DeviceManager {
     }
 
     public async refreshData(query, updateQuery) {
-        if (this._useLocalRepository) {
-            await this._unitOfWork.devices.dropDb();
-        } else {
-            await (await DeviceController.getDevices(query)).forEach(async (device) => {
-                const d = await this._unitOfWork.devices.findByToken(device.token);
-                if (d) {
-                    let udpateQueryCopy = updateQuery;
-                    if (!udpateQueryCopy || !udpateQueryCopy.hasOwnProperty()) {
-                        udpateQueryCopy = device;
-                        delete updateQuery.token;
-                        delete updateQuery.name;
-                        delete updateQuery.type;
-                        delete updateQuery.apiLevel;
-                    }
-                    await this._unitOfWork.devices.update(device.token, udpateQueryCopy);
-                } else {
-                    await this.createModel(device);
-                }
-            });
-        }
+        return new Promise(async (resolve, reject) => {
+            if (this._useLocalRepository) {
+                this._unitOfWork.devices.dropDb();
+                resolve();
+            } else {
+                const parsedDevices = await DeviceController.getDevices(query);
 
-        const devices = await this._unitOfWork.devices.find(updateQuery);
+                const devices = new Array();                
+                parsedDevices.forEach(device => {
+                    devices.push(DeviceManager.deviceToJSON(device));
+                });
 
-        return devices;
+                await this._unitOfWork.devices.deleteMany(query);
+                await this._unitOfWork.devices.addMany(devices);
+                const result = await this._unitOfWork.devices.find(updateQuery);
+
+                resolve(result);
+            };
+        });
     }
 
     public async dropdb() {
@@ -232,7 +227,11 @@ export class DeviceManager {
     }
 
     private async createModel(device: IDevice) {
-        return await this._unitOfWork.devices.add({
+        return await this._unitOfWork.devices.add(DeviceManager.deviceToJSON(device));
+    }
+
+    private static deviceToJSON(device: IDevice) {
+        return {
             name: device.name,
             token: device.token,
             status: device.status,
@@ -243,7 +242,7 @@ export class DeviceManager {
             info: device.info,
             config: device.config,
             apiLevel: device.apiLevel
-        });
+        };
     }
 
     private static convertIDeviceToQuery(from: any) {

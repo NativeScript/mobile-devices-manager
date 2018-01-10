@@ -19,6 +19,14 @@ export class MongoRepository<T extends IDeviceModel> implements IRepository<T> {
         return await this._entitySet.create(item);
     }
 
+    public async addMany(items: T[]) {
+        return await this._entitySet.create(...items);
+    }
+
+    public async deleteMany(item: any) {
+        return await this._entitySet.deleteMany(item);
+    }
+
     public async find(query: T): Promise<Array<T>> {
         const result = await this._entitySet.find(query);
         const array = new Array<T>();

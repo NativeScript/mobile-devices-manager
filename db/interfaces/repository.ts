@@ -4,6 +4,8 @@ export interface IRepository<T> {
     findByToken(token: string): Promise<T>;
     update(token: string, query: T): Promise<T>;
     add(query: T);
+    addMany(query: T[]);
+    deleteMany(query: any);
     remove(query);
     dropDb(): Promise<void>;
 }

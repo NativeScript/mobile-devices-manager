@@ -7,7 +7,9 @@ export declare class LocalRepository<T extends IDevice> implements IRepository<T
     findSingle(item: any): Promise<T>;
     private filter(query);
     update(token: string, obj: T): Promise<any>;
-    add(item: T): Promise<void>;
+    add(item: T): Promise<any>;
+    addMany(item: T[]): Promise<any>;
+    deleteMany(item: any): Promise<any>;
     remove(item: any): Promise<void>;
     dropDb(): any;
     private setDiveceStatus(device);

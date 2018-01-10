@@ -83,7 +83,18 @@ export class LocalRepository<T extends IDevice> implements IRepository<T> {
         return <any>(await DeviceController.getDevices({ "token": token }))[0];
     }
 
-    public async add(item: T) {
+    public add(item: T):Promise<any> {
+        return Promise.reject("Not implemented!");
+        // not sure but could be implement if we want to create new iPhone
+    }
+
+    public addMany(item: T[]) :Promise<any> {
+        return Promise.reject("Not implemented!");  
+        // not sure but could be implement if we want to create new iPhone
+    }
+
+    public deleteMany(item: any) :Promise<any> {
+        return Promise.reject("Not implemented!");  
         // not sure but could be implement if we want to create new iPhone
     }
 
