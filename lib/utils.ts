@@ -17,8 +17,8 @@ import {
     readdirSync
 } from "fs";
 
-export function getDeviceManager(constantns?) {
-    const unitOfWork: IUnitOfWork = constantns.useMongoDB ? new MongoUnitOfWork() : new LocalUnitOfWork();
+export async function getDeviceManager(constantns?) {
+    const unitOfWork: IUnitOfWork = constantns.useMongoDB ? await MongoUnitOfWork.createConnection() : new LocalUnitOfWork();
     if (constantns.verbose) {
         console.log("", unitOfWork);
     }

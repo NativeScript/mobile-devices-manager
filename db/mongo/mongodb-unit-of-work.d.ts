@@ -4,6 +4,7 @@ import { IDeviceModel } from "../interfaces/device-model";
 export declare class MongoUnitOfWork implements IUnitOfWork {
     private _devices;
     private _context;
-    constructor(connectionString?: string);
+    constructor();
+    static createConnection(connectionString?: string): Promise<MongoUnitOfWork>;
     readonly devices: IRepository<IDeviceModel>;
 }
