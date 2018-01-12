@@ -51,35 +51,42 @@ export class DeviceManager {
             DeviceController.kill(device);
             device = undefined;
         }
-        let busyDevices = 0;
-        let count = ((query.type === DeviceType.EMULATOR || query.platform === Platform.ANDROID) ? process.env['MAX_EMU_COUNT'] : process.env['MAX_SIM_COUNT']) || 1;
+        let maxDevicesCount = ((query.type === DeviceType.EMULATOR || query.platform === Platform.ANDROID) ? process.env['MAX_EMU_COUNT'] : process.env['MAX_SIM_COUNT']) || 1;
 
         if (!device) {
             searchQuery.status = Status.BUSY;
-            busyDevices = (await this._unitOfWork.devices.find(searchQuery)).length;
 
-            if (busyDevices < count) {
-                searchQuery.status = Status.SHUTDOWN;
-                device = await this._unitOfWork.devices.findSingle(searchQuery);
-                if (device) {
-                    device.info = query.info;
-                    const update = await this.mark(device);
-                    device.busySince = update.busySince;
-                    device.status = <Status>update.status;
-                    const deviceToBoot: IDevice = {
-                        token: device.token,
-                        type: device.type,
-                        name: device.name,
-                        apiLevel: device.apiLevel,
-                        platform: device.platform
-                    };
-                    const bootedDevice = (await this.boot(deviceToBoot, 1, false))[0];
-                    device.token = bootedDevice.token;
-                    device.startedAt = bootedDevice.startedAt;
-                    device.busySince = bootedDevice.startedAt;
-                    device.status = bootedDevice.status;
-                    device.pid = bootedDevice.pid;
-                }
+            const busyDevicesCount = (await this._unitOfWork.devices.find({ "type": (query['type'] || query['platform']), "status": Status.BUSY })).length;
+            if (busyDevicesCount >= maxDevicesCount) {
+                throw new Error("MAX DEVICE COUNT REACHED!!!");
+            }
+
+            const bootedDevices = (await this._unitOfWork.devices.find({ "type": (query['type'] || query['platform']), "status": Status.BOOTED }));
+            if (bootedDevices && bootedDevices.length > 0 && bootedDevices.length === maxDevicesCount) {
+                this.killDevices(bootedDevices[0]);
+            }
+            searchQuery.status = Status.SHUTDOWN;
+            device = await this._unitOfWork.devices.findSingle(searchQuery);
+            await this._unitOfWork.devices.update(bootedDevices[0].token, { 'status': Status.SHUTDOWN });
+            
+            if (device) {
+                device.info = query.info;
+                const update = await this.mark(device);
+                device.busySince = update.busySince;
+                device.status = <Status>update.status;
+                const deviceToBoot: IDevice = {
+                    token: device.token,
+                    type: device.type,
+                    name: device.name,
+                    apiLevel: device.apiLevel,
+                    platform: device.platform
+                };
+                const bootedDevice = (await this.boot(deviceToBoot, 1, false))[0];
+                device.token = bootedDevice.token;
+                device.startedAt = bootedDevice.startedAt;
+                device.busySince = bootedDevice.startedAt;
+                device.status = bootedDevice.status;
+                device.pid = bootedDevice.pid;
 
                 if (!device) {
                     delete searchQuery.status;
@@ -88,14 +95,14 @@ export class DeviceManager {
             }
         }
 
-        if (device || device !== null && busyDevices < count) {
+        if (device) {
             device.info = query.info;
             const update = await this.mark(device);
             device.busySince = update.busySince;
             device.status = update.status;
             await this._unitOfWork.devices.update(device.token, device);
             device = await this._unitOfWork.devices.findByToken(device.token);
-        } else if (!device) {
+        } else {
             device = await this.unmark(device);
         }
 
@@ -162,7 +169,7 @@ export class DeviceManager {
             } else {
                 const parsedDevices = await DeviceController.getDevices(query);
 
-                const devices = new Array();                
+                const devices = new Array();
                 parsedDevices.forEach(device => {
                     devices.push(DeviceManager.deviceToJSON(device));
                 });
