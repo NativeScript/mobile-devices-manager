@@ -10,7 +10,6 @@ import {
     DeviceType,
     Status
 } from "mobile-devices-controller";
-import { debug } from "util";
 import { Stats } from "fs";
 
 export class DeviceManager {
@@ -56,26 +55,23 @@ export class DeviceManager {
         if (!device) {
             searchQuery.status = Status.BUSY;
 
-            let currentQueryProperty = "type"
-            if (!query['type']) {
-                currentQueryProperty = "platform";
+            let currentQueryProperty = {};
+            if (query['type']) {
+                currentQueryProperty["type"] = query["type"];
+            } else {
+                currentQueryProperty["platform"] = query["platform"];;
             }
-            const busyDevicesCount = (await this._unitOfWork.devices.find({ currentQueryProperty: query[currentQueryProperty], "status": Status.BUSY })).length;
+            currentQueryProperty["status"] = Status.BUSY;
+            const busyDevicesCount = (await this._unitOfWork.devices.find(currentQueryProperty)).length;
             if (busyDevicesCount >= maxDevicesCount) {
                 throw new Error("MAX DEVICE COUNT REACHED!!!");
             }
 
-            const bootedDevices = (await this._unitOfWork.devices.find({ currentQueryProperty: query[currentQueryProperty], "status": Status.BOOTED }));
-            let shouldUpdateDeviceStatus = false;
-            if (bootedDevices && bootedDevices.length > 0 && bootedDevices.length === maxDevicesCount) {
-                this.killDevices(bootedDevices[0]);
-                shouldUpdateDeviceStatus = true;
-            }
+            currentQueryProperty["status"] = Status.BOOTED;
+            const bootedDevices = (await this._unitOfWork.devices.find(currentQueryProperty));
+            const shouldKillDevice = bootedDevices && bootedDevices.length > 0 && bootedDevices.length === maxDevicesCount;
             searchQuery.status = Status.SHUTDOWN;
             device = await this._unitOfWork.devices.findSingle(searchQuery);
-            if (shouldUpdateDeviceStatus) {
-                await this._unitOfWork.devices.update(bootedDevices[0].token, { 'status': Status.SHUTDOWN });
-            }
 
             if (device) {
                 device.info = query.info;
@@ -95,6 +91,11 @@ export class DeviceManager {
                 device.busySince = bootedDevice.startedAt;
                 device.status = bootedDevice.status;
                 device.pid = bootedDevice.pid;
+
+                if (shouldKillDevice) {
+                    this.killDevice(bootedDevices[0]);
+                    await this._unitOfWork.devices.update(bootedDevices[0].token, { 'status': Status.SHUTDOWN });
+                }
 
                 if (!device) {
                     delete searchQuery.status;
@@ -150,11 +151,11 @@ export class DeviceManager {
             await this.refreshData({ platform: Platform.ANDROID }, updateQuery);
             return this._unitOfWork.devices.find(updateQuery);
         } else if (query) {
-            if (Object.getOwnPropertyNames(query).length === 1 && query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR) {
+            if (Object.getOwnPropertyNames(query).length === 1 && (query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR)) {
                 IOSController.killAll();
                 query.platform = Platform.IOS;
                 query.type = DeviceType.SIMULATOR;
-            } else if (Object.getOwnPropertyNames(query).length === 1 && query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR) {
+            } else if (Object.getOwnPropertyNames(query).length === 1 && (query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR)) {
                 AndroidController.killAll();
                 query.platform = Platform.ANDROID;
                 query.type = DeviceType.EMULATOR;
@@ -211,6 +212,15 @@ export class DeviceManager {
                 }
             });
         }, 300000);
+    }
+
+    private async killDevice(device) {
+        await DeviceController.kill(device);
+        const updateQuery = {};
+        updateQuery['status'] = Status.SHUTDOWN;
+        updateQuery['startedAt'] = -1;
+        updateQuery['busySince'] = -1;
+        const log = await this._unitOfWork.devices.update(device.token, updateQuery);
     }
 
     private async mark(query): Promise<{ status: Status, busySince: number }> {

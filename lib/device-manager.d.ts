@@ -12,6 +12,7 @@ export declare class DeviceManager {
     dropdb(): Promise<{}>;
     update(token: any, udpateQuery: any): Promise<any>;
     checkDeviceStatus(maxUsageTime: any): void;
+    private killDevice(device);
     private mark(query);
     private unmark(query);
     private createModel(device);
