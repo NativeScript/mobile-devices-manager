@@ -62,13 +62,17 @@ export class DeviceManager {
             }
 
             const bootedDevices = (await this._unitOfWork.devices.find({ "type": (query['type'] || query['platform']), "status": Status.BOOTED }));
+            let shouldUpdateDeviceStatus = false;
             if (bootedDevices && bootedDevices.length > 0 && bootedDevices.length === maxDevicesCount) {
                 this.killDevices(bootedDevices[0]);
+                shouldUpdateDeviceStatus = true;
             }
             searchQuery.status = Status.SHUTDOWN;
             device = await this._unitOfWork.devices.findSingle(searchQuery);
-            await this._unitOfWork.devices.update(bootedDevices[0].token, { 'status': Status.SHUTDOWN });
-            
+            if (shouldUpdateDeviceStatus) {
+                await this._unitOfWork.devices.update(bootedDevices[0].token, { 'status': Status.SHUTDOWN });
+            }
+
             if (device) {
                 device.info = query.info;
                 const update = await this.mark(device);
