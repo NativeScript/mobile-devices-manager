@@ -67,6 +67,8 @@ export class DeviceManager {
             }
             searchQuery.status = Status.SHUTDOWN;
             device = await this._unitOfWork.devices.findSingle(searchQuery);
+            await this._unitOfWork.devices.update(bootedDevices[0].token, { 'status': Status.SHUTDOWN });
+            
             if (device) {
                 device.info = query.info;
                 const update = await this.mark(device);
