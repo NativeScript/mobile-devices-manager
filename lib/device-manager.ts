@@ -56,12 +56,16 @@ export class DeviceManager {
         if (!device) {
             searchQuery.status = Status.BUSY;
 
-            const busyDevicesCount = (await this._unitOfWork.devices.find({ "type": (query['type'] || query['platform']), "status": Status.BUSY })).length;
+            let currentQueryProperty = "type"
+            if (!query['type']) {
+                currentQueryProperty = "platform";
+            }
+            const busyDevicesCount = (await this._unitOfWork.devices.find({ currentQueryProperty: query[currentQueryProperty], "status": Status.BUSY })).length;
             if (busyDevicesCount >= maxDevicesCount) {
                 throw new Error("MAX DEVICE COUNT REACHED!!!");
             }
 
-            const bootedDevices = (await this._unitOfWork.devices.find({ "type": (query['type'] || query['platform']), "status": Status.BOOTED }));
+            const bootedDevices = (await this._unitOfWork.devices.find({ currentQueryProperty: query[currentQueryProperty], "status": Status.BOOTED }));
             let shouldUpdateDeviceStatus = false;
             if (bootedDevices && bootedDevices.length > 0 && bootedDevices.length === maxDevicesCount) {
                 this.killDevices(bootedDevices[0]);
