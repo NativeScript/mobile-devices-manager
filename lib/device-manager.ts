@@ -63,7 +63,7 @@ export class DeviceManager {
             }
             currentQueryProperty["status"] = Status.BUSY;
             const busyDevicesCount = (await this._unitOfWork.devices.find(currentQueryProperty)).length;
-            if (busyDevicesCount >= maxDevicesCount) {
+            if (busyDevicesCount > maxDevicesCount) {
                 throw new Error("MAX DEVICE COUNT REACHED!!!");
             }
 
