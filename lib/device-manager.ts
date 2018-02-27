@@ -14,7 +14,10 @@ import { Stats } from "fs";
 
 export class DeviceManager {
 
+    private _usedDevices: Map<string, number>;
+
     constructor(private _unitOfWork: IUnitOfWork, private _useLocalRepository = true) {
+        this._usedDevices = new Map<string, number>();
     }
 
     public async boot(query, count, shouldUpdate = true) {
@@ -55,11 +58,11 @@ export class DeviceManager {
         if (!device) {
             searchQuery.status = Status.BUSY;
 
-            let currentQueryProperty = {};
-            if (query['type']) {
-                currentQueryProperty["type"] = query["type"];
+            let currentQueryProperty: any = {};
+            if (query['platform']) {
+                currentQueryProperty["platform"] = query["platform"];
             } else {
-                currentQueryProperty["platform"] = query["platform"];;
+                currentQueryProperty["type"] = query["type"];;
             }
             currentQueryProperty["status"] = Status.BUSY;
             const busyDevicesCount = (await this._unitOfWork.devices.find(currentQueryProperty)).length;
@@ -69,7 +72,7 @@ export class DeviceManager {
 
             currentQueryProperty["status"] = Status.BOOTED;
             const bootedDevices = (await this._unitOfWork.devices.find(currentQueryProperty));
-            const shouldKillDevice = bootedDevices && bootedDevices.length > 0 && bootedDevices.length === maxDevicesCount;
+            const shouldKillDevice = bootedDevices && bootedDevices.length > 0 && (bootedDevices.length === maxDevicesCount);
             searchQuery.status = Status.SHUTDOWN;
             device = await this._unitOfWork.devices.findSingle(searchQuery);
 
@@ -91,10 +94,11 @@ export class DeviceManager {
                 device.busySince = bootedDevice.startedAt;
                 device.status = bootedDevice.status;
                 device.pid = bootedDevice.pid;
-
+                this.resetUsage(device);
                 if (shouldKillDevice) {
                     this.killDevice(bootedDevices[0]);
-                    await this._unitOfWork.devices.update(bootedDevices[0].token, { 'status': Status.SHUTDOWN });
+                    const upQuery: any = { 'status': Status.SHUTDOWN };
+                    await this._unitOfWork.devices.update(bootedDevices[0].token, upQuery);
                 }
 
                 if (!device) {
@@ -111,6 +115,11 @@ export class DeviceManager {
             device.status = update.status;
             await this._unitOfWork.devices.update(device.token, device);
             device = await this._unitOfWork.devices.findByToken(device.token);
+            this.increaseDevicesUsage(device);
+            if ((device.platform === Platform.ANDROID || device.type === DeviceType.EMULATOR) && this.checkDeviceUsageHasReachedLimit(5, device)) {
+                AndroidController.reboot(device);
+                this.resetUsage(device);
+            }
         } else {
             device = await this.unmark(device);
         }
@@ -216,7 +225,7 @@ export class DeviceManager {
 
     private async killDevice(device) {
         await DeviceController.kill(device);
-        const updateQuery = {};
+        const updateQuery: any = {};
         updateQuery['status'] = Status.SHUTDOWN;
         updateQuery['startedAt'] = -1;
         updateQuery['busySince'] = -1;
@@ -281,5 +290,25 @@ export class DeviceManager {
         });
 
         return to;
+    }
+
+    private increaseDevicesUsage(device: IDevice) {
+        if (!this._usedDevices.has(device.token)) {
+            this._usedDevices.set(device.token, 0);
+        }
+        const counter = this._usedDevices.get(device.token) + 1;
+        this._usedDevices.set(device.token, counter);
+    }
+
+    private resetUsage(device: IDevice) {
+        this._usedDevices.set(device.token, 0);
+    }
+
+    private checkDeviceUsageHasReachedLimit(count: number, device: IDevice): boolean {
+        if (this._usedDevices.has(device.token) === false || this._usedDevices.get(device.token) === 0) {
+            return false;
+        }
+
+        return this._usedDevices.get(device.token) >= count ? true : false;
     }
 }
