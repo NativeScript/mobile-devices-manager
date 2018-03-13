@@ -118,12 +118,18 @@ export class DeviceManager {
             this.increaseDevicesUsage(device);
             if ((device.platform === Platform.ANDROID || device.type === DeviceType.EMULATOR) && this.checkDeviceUsageHasReachedLimit(5, device)) {
                 AndroidController.reboot(device);
+                console.log(`On: ${new Date(Date.now())} device: ${device.name} ${device.token} is rebooted!`);
                 this.resetUsage(device);
             }
         } else {
             device = await this.unmark(device);
         }
-
+        if (device && device.type === DeviceType.EMULATOR || device.platform === Platform.ANDROID) {
+            if(AndroidController.checkApplicationNotRespondingDialogIsDisplayed(device)){
+                AndroidController.reboot(device);
+                console.log(`On: ${new Date(Date.now())} device: ${device.name} ${device.token} is rebooted!`);                
+            }
+        }
         return <IDevice>device;
     }
 
