@@ -36,7 +36,6 @@ export class DeviceManager {
             }
             startedDevices.push(device);
         }
-
         return startedDevices;
     }
 
@@ -125,11 +124,12 @@ export class DeviceManager {
             device = await this.unmark(device);
         }
         if (device && device.type === DeviceType.EMULATOR || device.platform === Platform.ANDROID) {
-            if(AndroidController.checkApplicationNotRespondingDialogIsDisplayed(device)){
+            if (AndroidController.checkApplicationNotRespondingDialogIsDisplayed(device)) {
                 AndroidController.reboot(device);
-                console.log(`On: ${new Date(Date.now())} device: ${device.name} ${device.token} is rebooted!`);                
+                console.log(`On: ${new Date(Date.now())} device: ${device.name} ${device.token} is rebooted!`);
             }
         }
+
         return <IDevice>device;
     }
 
@@ -158,31 +158,22 @@ export class DeviceManager {
             return this.refreshData(query, updateQuery);
         }
 
-        if (!query || (!query.type && !query.platform)) {
+        if (!query) {
             await this._unitOfWork.devices.dropDb();
             IOSController.killAll();
             await this.refreshData({ platform: Platform.IOS }, updateQuery);
             AndroidController.killAll();
             await this.refreshData({ platform: Platform.ANDROID }, updateQuery);
             return this._unitOfWork.devices.find(updateQuery);
-        } else if (query) {
-            if (Object.getOwnPropertyNames(query).length === 1 && (query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR)) {
-                IOSController.killAll();
-                query.platform = Platform.IOS;
-                query.type = DeviceType.SIMULATOR;
-            } else if (Object.getOwnPropertyNames(query).length === 1 && (query.platform === Platform.IOS || query.type === DeviceType.SIMULATOR)) {
-                AndroidController.killAll();
-                query.platform = Platform.ANDROID;
-                query.type = DeviceType.EMULATOR;
-            } else {
-                const devices = await this._unitOfWork.devices.find(query);
-                devices.forEach(async (device) => {
-                    await DeviceController.kill(device);
-                    const log = await this._unitOfWork.devices.update(device.token, updateQuery);
-                });
-            }
-            await this.refreshData(query, updateQuery);
+        } else {
+            const devices = await this._unitOfWork.devices.find(query);
+            devices.forEach(async (device) => {
+                await DeviceController.kill(device);
+                const log = await this._unitOfWork.devices.update(device.token, updateQuery);
+            });
         }
+
+        await this.refreshData(query, updateQuery);
     }
 
     public async refreshData(query, updateQuery) {
