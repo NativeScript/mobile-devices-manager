@@ -18,3 +18,5 @@ export declare function mkDir(dir: any): void;
 export declare function mkFile(file: string, content: any): void;
 export declare function writeFileToJson(file: any, content: any): void;
 export declare function readJsonFromFile(file: any): any;
+export declare const wait: (miliSeconds: any) => void;
+export declare const log: (msg: string, obj?: any) => void;

@@ -240,3 +240,13 @@ export function readJsonFromFile(file) {
 
     return json;
 }
+
+export const wait = (miliSeconds) => {
+    const startTime = Date.now();
+    while (Date.now() - startTime <= miliSeconds) { }
+}
+
+export const log = (msg: string, obj?: any) => {
+    const time = new Date(Date.now());
+    console.log(`Log at: ${time}. ${msg}! `, obj);
+}
