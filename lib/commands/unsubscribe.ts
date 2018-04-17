@@ -28,5 +28,5 @@ export async function handler(yargs) {
 
 export async function unsubscribe(token) {
     const manager = await getDeviceManager(constantns);
-    return await manager.unsubscribeFromDevice({ token: token });
+    return await manager.unsubscribeFromDevice({ token: token }, undefined);
 }
