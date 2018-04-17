@@ -9,7 +9,8 @@ export declare class DeviceManager {
     constructor(_unitOfWork: IUnitOfWork, _useLocalRepository?: boolean);
     boot(query: any, count: any, shouldUpdate?: boolean): Promise<IDevice[]>;
     subscribeForDevice(query: any): Promise<IDevice>;
-    unsubscribeFromDevice(query: any): Promise<IDevice>;
+    unsubscribeFromDevice(query: any, maxDeviceUsage: any): Promise<IDevice>;
+    private killDevicesOverLimit(query);
     killDevices(query?: any): Promise<{}>;
     refreshData(query: any, updateQuery: any): Promise<{}>;
     dropdb(): Promise<{}>;

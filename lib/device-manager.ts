@@ -12,6 +12,7 @@ import {
 } from "mobile-devices-controller";
 import { log, resolve, getAllFileNames } from "./utils";
 import { Stats, rmdirSync } from "fs";
+import { join } from "path";
 
 export class DeviceManager {
 
@@ -46,44 +47,25 @@ export class DeviceManager {
     }
 
     public async subscribeForDevice(query): Promise<IDevice> {
+        const maxDeviceRebootCycles = query["maxDeviceRebootCycles"] || this.maxDeviceRebootCycles;
         const searchQuery: IDevice = DeviceManager.convertIDeviceToQuery(query);
         delete searchQuery.info;
         searchQuery.status = Status.BOOTED;
 
         const queryByType: any = {};
-        queryByType["platform"] = query.platform["platform"];
+        queryByType["platform"] = query["platform"];
         if (!queryByType["platform"]) {
             delete queryByType["platform"];
             queryByType["type"] = query.platform["type"];
         }
+
+        queryByType["status"] = Status.BOOTED;
         let bootedDevices = await this._unitOfWork.devices.find(queryByType);
-        const maxDevicesCount = ((query.type === DeviceType.EMULATOR || query.platform === Platform.ANDROID) ? process.env['MAX_EMU_COUNT'] : process.env['MAX_SIM_COUNT']) || 1;
-
-        if (bootedDevices.length >= maxDevicesCount) {
-            bootedDevices.forEach(async device => {
-                if (this.checkDeviceUsageHasReachedLimit(this.maxDeviceUsage, device)) {
-                    if (query.restart && device) {
-                        log("Kill and reboot device", device);
-                        await DeviceController.kill(device);
-                        if (this.isAndroid(device)) {
-                            const avdsDirectory = process.env["AVDS_STORAGE"] || "$HOME/.android/avd";
-                            const avd = resolve(avdsDirectory, `${device.name}.avd`);
-                            getAllFileNames(avd).filter(f => f.endsWith(".lock")).forEach(f => {
-                                rmdirSync(f);
-                            });
-                        }
-
-                        this.resetUsage(device);
-                    }
-                }
-            });
-            
-            bootedDevices = await this._unitOfWork.devices.find(queryByType);
-        }
 
         let device: any = bootedDevices.length > 0 ? bootedDevices[0] : undefined;
-        if (this.isAndroid(device)
-            && (this.checkDeviceUsageHasReachedLimit(this.maxDeviceRebootCycles, device) || AndroidController.checkApplicationNotRespondingDialogIsDisplayed(device))) {
+        if (device && this.isAndroid(device)
+            && (this.checkDeviceUsageHasReachedLimit(maxDeviceRebootCycles, device)
+                || AndroidController.checkApplicationNotRespondingDialogIsDisplayed(device))) {
             AndroidController.reboot(device);
             log(`Device: ${device.name}/ ${device.token} is rebooted!`);
             this.resetUsage(device);
@@ -103,8 +85,8 @@ export class DeviceManager {
                 }
 
                 device.startedAt = bootedDevice.startedAt;
-                device.busySince = bootedDevice.startedAt;
                 device.status = bootedDevice.status;
+
                 device.pid = bootedDevice.pid;
                 this.resetUsage(device);
             }
@@ -116,7 +98,7 @@ export class DeviceManager {
             device.busySince = markedDevice.busySince;
             device.status = <Status>markedDevice.status;
 
-            await this._unitOfWork.devices.update(device.token, device);
+            const updateResult = await this._unitOfWork.devices.update(device.token, device);
             device = await this._unitOfWork.devices.findByToken(device.token);
             this.increaseDevicesUsage(device);
         } else {
@@ -126,8 +108,14 @@ export class DeviceManager {
         return <IDevice>device;
     }
 
-    public async unsubscribeFromDevice(query): Promise<IDevice> {
+    public async unsubscribeFromDevice(query, maxDeviceUsage): Promise<IDevice> {
         const device = await this._unitOfWork.devices.findByToken(query.token);
+        if (device && this.checkDeviceUsageHasReachedLimit(maxDeviceUsage || this.maxDeviceUsage, device)) {
+            this.killDevice(device);
+        }
+
+        this.killDevicesOverLimit({ type: device.type });
+
         if (device) {
             device.busySince = -1;
             device.info = undefined;
@@ -136,6 +124,17 @@ export class DeviceManager {
             }
 
             return await this.unmark(device);
+        }
+    }
+
+    private async killDevicesOverLimit(query) {
+        const maxDevicesCount = ((query.type === DeviceType.EMULATOR || query.platform === Platform.ANDROID) ? process.env['MAX_EMU_COUNT'] : process.env['MAX_SIM_COUNT']) || 1;
+        query['status'] = Status.BOOTED;
+        const bootedDevices = await this._unitOfWork.devices.find(query);
+        for (let index = 0; index < bootedDevices.length; index++) {
+            const device = bootedDevices[index];
+            log(`Killing booted devices over which are limit or should be restarted!`);
+            this.killDevice(device);
         }
     }
 
@@ -164,6 +163,7 @@ export class DeviceManager {
                 await DeviceController.kill(device);
                 const log = await this._unitOfWork.devices.update(device.token, updateQuery);
             });
+
         }
 
         await this.refreshData(query, updateQuery);
@@ -214,12 +214,24 @@ export class DeviceManager {
     }
 
     private async killDevice(device) {
+        log(`Kill device: ${device}`);
+        this.resetUsage(device);
         await DeviceController.kill(device);
+        if (this.isAndroid(device)) {
+            const avdsDirectory = process.env["AVDS_STORAGE"] || join(process.env["HOME"], "/.android/avd");
+            const avd = resolve(avdsDirectory, `${device.name}.avd`);
+            getAllFileNames(avd).filter(f => f.endsWith(".lock")).forEach(f => {
+                rmdirSync(f);
+            });
+        }
         const updateQuery: any = {};
         updateQuery['status'] = Status.SHUTDOWN;
         updateQuery['startedAt'] = -1;
         updateQuery['busySince'] = -1;
-        const log = await this._unitOfWork.devices.update(device.token, updateQuery);
+        updateQuery['pid'] = 0;
+        updateQuery['info'] = "";
+
+        const updateResult = await this._unitOfWork.devices.update(device.token, updateQuery);
     }
 
     private async mark(query): Promise<{ status: Status, busySince: number }> {
