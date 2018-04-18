@@ -52,17 +52,9 @@ export class DeviceManager {
         delete searchQuery.info;
         searchQuery.status = Status.BOOTED;
 
-        const queryByType: any = {};
-        queryByType["platform"] = query["platform"];
-        if (!queryByType["platform"]) {
-            delete queryByType["platform"];
-            queryByType["type"] = query.platform["type"];
-        }
+        let bootedDevicesByQuery = await this._unitOfWork.devices.find(searchQuery);
 
-        queryByType["status"] = Status.BOOTED;
-        let bootedDevices = await this._unitOfWork.devices.find(queryByType);
-
-        let device: any = bootedDevices.length > 0 ? bootedDevices[0] : undefined;
+        let device: any = bootedDevicesByQuery.length > 0 ? bootedDevicesByQuery[0] : undefined;
         if (device && this.isAndroid(device)
             && (this.checkDeviceUsageHasReachedLimit(maxDeviceRebootCycles, device)
                 || AndroidController.checkApplicationNotRespondingDialogIsDisplayed(device))) {
