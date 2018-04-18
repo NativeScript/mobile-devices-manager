@@ -68,12 +68,14 @@ export class DeviceManager {
             device = await this._unitOfWork.devices.findSingle(searchQuery);
 
             if (device) {
-                const bootedDevice = (await this.boot({ token: device.token }, 1, false))[0];
-                if (!bootedDevice) {
-                    delete searchQuery.status;
-                    await this.unmark(searchQuery);
+                let bootedDevice = (await this.boot({ token: device.token }, 1, false))[0];
+                if (!bootedDevice || !bootedDevice.token) {
+                    this.killDevice(bootedDevice);
                     log(`Failed to boot device! Result: `, bootedDevice);
-                    throw Error("Failed to boot device!!!");
+                    bootedDevice = (await this.boot({ token: device.token }, 1, false))[0];
+                    if (!bootedDevice) {
+                        throw Error("Failed to boot device!!!");
+                    }
                 }
 
                 device.startedAt = bootedDevice.startedAt;

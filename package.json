@@ -1,7 +1,7 @@
 {
   "name": "mobile-devices-manager",
   "description": "Manage emulators, simulators and real devices",
-  "version": "1.2.5",
+  "version": "1.2.6",
   "author": "SvetoslavTsenov",
   "bin": {
     "nsmdm": "./bin/nsmdm"
