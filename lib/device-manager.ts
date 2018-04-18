@@ -111,23 +111,21 @@ export class DeviceManager {
         if (device) {
             device.busySince = -1;
             device.info = undefined;
-            if (device.status !== Status.SHUTDOWN) {
-                device.status = Status.BOOTED;
-            }
-
+            device.status = device.status !== Status.SHUTDOWN ? Status.BOOTED : Status.SHUTDOWN;
             return await this.unmark(device);
         }
     }
 
     private async killDevicesOverLimit(query) {
-        const maxDevicesCount = query.type === (DeviceType.EMULATOR ? process.env['MAX_EMU_COUNT'] : process.env['MAX_SIM_COUNT']) || 1;
+        const maxDevicesCount = (query.type === DeviceType.EMULATOR ? process.env['MAX_EMU_COUNT'] : process.env['MAX_SIM_COUNT']) || 1;
         const bootedDevices = await this._unitOfWork.devices.find(<any>{ type: query.type, status: Status.BOOTED });
+        const busyDevices = await this._unitOfWork.devices.find(<any>{ type: query.type, status: Status.BUSY });
 
         const bootedDevicesLength = bootedDevices.length;
-        if (maxDevicesCount < bootedDevicesLength) {
+        if (maxDevicesCount < bootedDevicesLength + busyDevices.length) {
             for (let index = 0; index < bootedDevicesLength; index++) {
                 const device = bootedDevices[index];
-                log(`Killed booted devices which reached limit for max devices count!`);
+                log(`Killing booted device ${device.name}, since the limit for max devices count: ${maxDevicesCount} is reached!`);
                 await this.killDevice(device);
             }
         }
@@ -229,6 +227,7 @@ export class DeviceManager {
         const updateResult = await this._unitOfWork.devices.update(device.token, updateQuery);
         const killedDevice = await this._unitOfWork.devices.findSingle(<any>{ "token": device.token });
         if (killedDevice.status !== Status.SHUTDOWN) {
+            log(`Device status not updated after! Result`, updateResult);
             await this._unitOfWork.devices.update(killedDevice.token, <any>{ status: Status.SHUTDOWN });
         }
 
@@ -248,18 +247,17 @@ export class DeviceManager {
         if (!query || !query['token']) {
             return;
         }
-        const searchQuery: IDevice = query;
-        searchQuery.token = query.token;
-        searchQuery.busySince = -1;
-        searchQuery.info = undefined;
-        if (query.status) {
-            searchQuery.status = query.status;
-        } else {
-            searchQuery.status = Status.BOOTED;
-        }
-        const result = await this._unitOfWork.devices.update(searchQuery.token, searchQuery);
+        const updateQuery: IDevice = DeviceManager.convertIDeviceToQuery(query);
+        updateQuery.token = query.token;
+        updateQuery.busySince = -1;
+        updateQuery.info = undefined;
+        updateQuery.status = updateQuery.status || Status.BOOTED;
+        delete updateQuery.token;
+
+        const result = await this._unitOfWork.devices.update(updateQuery.token, updateQuery);
 
         const device = await this._unitOfWork.devices.findByToken(query.token);
+        log(`Unmark result for device: ${device.name}: ${result}`);
         return device;
     }
 

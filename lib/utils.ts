@@ -248,5 +248,5 @@ export const wait = (miliSeconds) => {
 
 export const log = (msg: string, obj?: any) => {
     const time = new Date(Date.now());
-    console.log(`Log at: ${time}. ${msg}! `, obj);
+    console.log(`Log at: ${time}.\n ${msg}!\n `, obj);
 }
