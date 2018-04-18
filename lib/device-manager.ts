@@ -105,12 +105,12 @@ export class DeviceManager {
     }
 
     public async unsubscribeFromDevice(query, maxDeviceUsage): Promise<IDevice> {
-        const device = await this._unitOfWork.devices.findByToken(query.token);
+        let device = await this._unitOfWork.devices.findByToken(query.token);
         if (device) {
             device.busySince = -1;
             device.info = undefined;
             device.status = device.status !== Status.SHUTDOWN ? Status.BOOTED : Status.SHUTDOWN;
-            return await this.unmark(device);
+            await this.unmark(device);
         }
         maxDeviceUsage = maxDeviceUsage > 0 ? maxDeviceUsage : this.maxDeviceUsage;
         if (device && this.checkDeviceUsageHasReachedLimit(maxDeviceUsage, device)) {
@@ -118,6 +118,10 @@ export class DeviceManager {
         }
 
         await this.killDevicesOverLimit({ type: device.type });
+        
+        device = await this._unitOfWork.devices.findByToken(query.token);
+
+        return device;
     }
 
     private async unmark(query) {
