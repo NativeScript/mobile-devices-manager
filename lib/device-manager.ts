@@ -121,8 +121,7 @@ export class DeviceManager {
 
     private async killDevicesOverLimit(query) {
         const maxDevicesCount = query.type === (DeviceType.EMULATOR ? process.env['MAX_EMU_COUNT'] : process.env['MAX_SIM_COUNT']) || 1;
-        query['status'] = Status.BOOTED;
-        const bootedDevices = await this._unitOfWork.devices.find(query);
+        const bootedDevices = await this._unitOfWork.devices.find(<any>{ type: query.type, status: Status.BOOTED });
 
         const bootedDevicesLength = bootedDevices.length;
         if (maxDevicesCount < bootedDevicesLength) {
