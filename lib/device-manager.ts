@@ -111,10 +111,10 @@ export class DeviceManager {
     public async unsubscribeFromDevice(query, maxDeviceUsage): Promise<IDevice> {
         const device = await this._unitOfWork.devices.findByToken(query.token);
         if (device && this.checkDeviceUsageHasReachedLimit(maxDeviceUsage || this.maxDeviceUsage, device)) {
-            this.killDevice(device);
+            await this.killDevice(device);
         }
 
-        this.killDevicesOverLimit({ type: device.type });
+        await this.killDevicesOverLimit({ type: device.type });
 
         if (device) {
             device.busySince = -1;
