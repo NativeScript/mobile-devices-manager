@@ -125,11 +125,11 @@ export class DeviceManager {
         const bootedDevices = await this._unitOfWork.devices.find(query);
 
         const bootedDevicesLength = bootedDevices.length;
-        if (maxDevicesCount >= bootedDevicesLength) {
+        if (maxDevicesCount < bootedDevicesLength) {
             for (let index = 0; index < bootedDevicesLength; index++) {
                 const device = bootedDevices[index];
-                log(`Killing booted devices over which are limit or should be restarted!`);
-                this.killDevice(device);
+                log(`Killed booted devices which reached limit for max devices count!`);
+                await this.killDevice(device);
             }
         }
     }
@@ -228,6 +228,12 @@ export class DeviceManager {
         updateQuery['info'] = "";
 
         const updateResult = await this._unitOfWork.devices.update(device.token, updateQuery);
+        const killedDevice = await this._unitOfWork.devices.findSingle(<any>{ "token": device.token });
+        if (killedDevice.status !== Status.SHUTDOWN) {
+            await this._unitOfWork.devices.update(killedDevice.token, <any>{ status: Status.SHUTDOWN });
+        }
+
+        log('Result for updated killed device: ', killedDevice);
     }
 
     private async mark(query): Promise<{ status: Status, busySince: number }> {
