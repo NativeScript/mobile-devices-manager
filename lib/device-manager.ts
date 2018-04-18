@@ -128,13 +128,17 @@ export class DeviceManager {
     }
 
     private async killDevicesOverLimit(query) {
-        const maxDevicesCount = ((query.type === DeviceType.EMULATOR || query.platform === Platform.ANDROID) ? process.env['MAX_EMU_COUNT'] : process.env['MAX_SIM_COUNT']) || 1;
+        const maxDevicesCount = query.type === (DeviceType.EMULATOR ? process.env['MAX_EMU_COUNT'] : process.env['MAX_SIM_COUNT']) || 1;
         query['status'] = Status.BOOTED;
         const bootedDevices = await this._unitOfWork.devices.find(query);
-        for (let index = 0; index < bootedDevices.length; index++) {
-            const device = bootedDevices[index];
-            log(`Killing booted devices over which are limit or should be restarted!`);
-            this.killDevice(device);
+
+        const bootedDevicesLength = bootedDevices.length;
+        if (maxDevicesCount >= bootedDevicesLength) {
+            for (let index = 0; index < bootedDevicesLength; index++) {
+                const device = bootedDevices[index];
+                log(`Killing booted devices over which are limit or should be restarted!`);
+                this.killDevice(device);
+            }
         }
     }
 
