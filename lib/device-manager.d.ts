@@ -10,6 +10,7 @@ export declare class DeviceManager {
     boot(query: any, count: any, shouldUpdate?: boolean): Promise<IDevice[]>;
     subscribeForDevice(query: any): Promise<IDevice>;
     unsubscribeFromDevice(query: any, maxDeviceUsage: any): Promise<IDevice>;
+    private unmark(query);
     private killDevicesOverLimit(query);
     killDevices(query?: any): Promise<{}>;
     refreshData(query: any, updateQuery: any): Promise<{}>;
@@ -18,7 +19,6 @@ export declare class DeviceManager {
     checkDeviceStatus(maxUsageTime: any): void;
     private killDevice(device);
     private mark(query);
-    private unmark(query);
     private createModel(device);
     private static deviceToJSON(device);
     private static convertIDeviceToQuery(from);

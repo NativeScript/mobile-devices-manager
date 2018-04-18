@@ -28,7 +28,7 @@ export class MongoRepository<T extends IDeviceModel> implements IRepository<T> {
     }
 
     public async find(query: T): Promise<Array<T>> {
-        const result = await this._entitySet.find(query);
+        const result = await this._entitySet.find(MongoRepository.convertIModelDeviceToIDevice(query));
         const array = new Array<T>();
 
         result.forEach(element => {
@@ -48,42 +48,54 @@ export class MongoRepository<T extends IDeviceModel> implements IRepository<T> {
     }
 
     public async findSingle(query: T): Promise<T> {
-        const result = await this._entitySet.findOne(query);
+        const result = await this._entitySet.findOne(MongoRepository.convertIModelDeviceToIDevice(query));
 
         return result;
     }
 
     public async update(token: string, values: T) {
-        const device: IDeviceModel = await this._entitySet.findOne({ "token": token });
-        const result = await this._entitySet.update({ "token": token }, this.copyDeviceToIDeviceModel(values, device));
+        const result = await this._entitySet.update({ "token": token }, MongoRepository.convertIModelDeviceToIDevice(values));
         return result;
     }
 
     public async remove(item: T) {
-        return await this._entitySet.remove(item);
+        return await this._entitySet.remove(MongoRepository.convertIModelDeviceToIDevice(item));
     }
 
     public async dropDb() {
         await this._entitySet.db.dropDatabase();
     }
 
-    private copyDeviceToIDeviceModel(device: T, deviceModel: IDeviceModel) {
-        if (!device) {
-            return deviceModel;
-        }
+    private static filterConfigOptions = (options, newObj: any = {}) => {
+        Object.getOwnPropertyNames(options).forEach(key => {
+            if (options[key] && !key.startsWith("_") && !key.startsWith("$") && !key.startsWith("doc")) {
+                newObj[key] = options[key];
+            }
+        });
+        return newObj;
+    };
 
-        deviceModel['_doc']['name'] = device['name'];
-        deviceModel['_doc']['pid'] = device['pid'];
-        deviceModel['_doc']['startedAt'] = device['startedAt'];
-        deviceModel['_doc']['busySince'] = device['busySince'];
-        deviceModel['_doc']['status'] = device['status'];
-        deviceModel['_doc']['token'] = device['token'];
-        deviceModel['_doc']['type'] = device['type'];
-        deviceModel['_doc']['info'] = device['info'] || "";
-        deviceModel['_doc']['config'] = device['config'] || "";
-        deviceModel['_doc']['apiLevel'] = device['apiLevel'];
-        return deviceModel;
+    private static convertIModelDeviceToIDevice(from: any) {
+        return MongoRepository.filterConfigOptions(JSON.parse(JSON.stringify(from)));
     }
+
+    // private copyDeviceToIDeviceModel(device: T, deviceModel: IDeviceModel) {
+    //     if (!device) {
+    //         return deviceModel;
+    //     }
+
+    //     deviceModel['_doc']['name'] = device['name'] || deviceModel['_doc']['name'];
+    //     deviceModel['_doc']['pid'] = device['pid'] || deviceModel['_doc']['pid'];
+    //     deviceModel['_doc']['startedAt'] = device['startedAt'] || deviceModel['_doc']['startedAt'];
+    //     deviceModel['_doc']['busySince'] = device['busySince'] || deviceModel['_doc']['busySince'];
+    //     deviceModel['_doc']['status'] = device['status'] || deviceModel['_doc']['status'];
+    //     deviceModel['_doc']['token'] = device['token'] || deviceModel['_doc']['token'];
+    //     deviceModel['_doc']['type'] = device['type'] || deviceModel['_doc']['type'];
+    //     deviceModel['_doc']['info'] = device['info'] || deviceModel['_doc']['info'];
+    //     deviceModel['_doc']['config'] = device['config'] || deviceModel['_doc']['config'];
+    //     deviceModel['_doc']['apiLevel'] = device['apiLevel'] || deviceModel['_doc']['apiLevel'];
+    //     return deviceModel;
+    // }
 
     // private static copyIDeviceModelToDevice(deviceModel: IDeviceModel, device?: IDevice): IDevice {
     //     if (!device) {
