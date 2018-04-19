@@ -55,15 +55,32 @@ export class DeviceManager {
 
         let bootedDevicesByQuery = await this._unitOfWork.devices.find(searchQuery);
 
+        searchQuery.status = Status.BUSY;
+        const busyDevices = await this._unitOfWork.devices.find(searchQuery);
+        let shouldReloadDevices = false;
+        for (let index = 0; index < busyDevices.length; index++) {
+            let d = busyDevices[index];
+            const result = await this.refreshDeviceStatus(d, Status.BUSY);
+            if (d && result
+                 && result.status === Status.SHUTDOWN 
+                 && result.status !== d.status) {
+                shouldReloadDevices = false;
+            }
+        }
+
+        if (shouldReloadDevices) {
+            bootedDevicesByQuery = await this._unitOfWork.devices.find(searchQuery);
+        }
+
         let device: any = bootedDevicesByQuery.length > 0 ? bootedDevicesByQuery[0] : undefined;
-        device = await this.refreshDeviceStatus(device);
+        device = await this.refreshDeviceStatus(device, Status.BOOTED);
 
         if (device && this.isAndroid(device)
             && (this.checkDeviceUsageHasReachedLimit(maxDeviceRebootCycles, device)
                 || AndroidController.checkApplicationNotRespondingDialogIsDisplayed(device))) {
             device = await AndroidController.reboot(device);
             log(`Device: ${device.name}/ ${device.token} is rebooted!`);
-            device = await this.refreshDeviceStatus(device);
+            device = await this.refreshDeviceStatus(device, Status.BOOTED);
             this.resetUsage(device);
         }
 
@@ -127,10 +144,11 @@ export class DeviceManager {
         return device;
     }
 
-    private async refreshDeviceStatus(device) {
+    private async refreshDeviceStatus(device, expectedStatus: Status) {
         if (device) {
             const status: Status = await DeviceController.refreshDeviceStatus(device.token, device.platform);
-            if (status !== Status.BOOTED) {
+            if (status !== expectedStatus) {
+                log(`Device ${device.name} status: ${expectedStatus} is not booted`);
                 await this.killDevice(device);
                 this.resetUsage(device);
                 device = undefined;
