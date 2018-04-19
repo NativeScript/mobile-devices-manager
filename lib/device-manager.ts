@@ -56,11 +56,14 @@ export class DeviceManager {
         let bootedDevicesByQuery = await this._unitOfWork.devices.find(searchQuery);
 
         let device: any = bootedDevicesByQuery.length > 0 ? bootedDevicesByQuery[0] : undefined;
+        device = await this.refreshDeviceStatus(device);
+
         if (device && this.isAndroid(device)
             && (this.checkDeviceUsageHasReachedLimit(maxDeviceRebootCycles, device)
                 || AndroidController.checkApplicationNotRespondingDialogIsDisplayed(device))) {
             device = await AndroidController.reboot(device);
             log(`Device: ${device.name}/ ${device.token} is rebooted!`);
+            device = await this.refreshDeviceStatus(device);
             this.resetUsage(device);
         }
 
@@ -120,6 +123,19 @@ export class DeviceManager {
         await this.killDevicesOverLimit({ type: device.type });
 
         device = await this._unitOfWork.devices.findByToken(query.token);
+
+        return device;
+    }
+
+    private async refreshDeviceStatus(device) {
+        if (device) {
+            const status: Status = await DeviceController.refreshDeviceStatus(device.token, device.platform);
+            if (status !== Status.BOOTED) {
+                await this.killDevice(device);
+                this.resetUsage(device);
+                device = undefined;
+            }
+        }
 
         return device;
     }
@@ -217,18 +233,18 @@ export class DeviceManager {
         return await this._unitOfWork.devices.update(token, <Device>udpateQuery)
     }
 
-    public checkDeviceStatus(maxUsageTime) {
-        setInterval(async () => {
-            const devices = await this._unitOfWork.devices.find(<IDevice>{ status: Status.BUSY });
-            devices.forEach(async (device) => {
-                const now = Date.now();
-                if (now - device.startedAt > maxUsageTime) {
-                    await this.killDevices(device);
-                    await this.boot({ "name": device.name }, 1);
-                }
-            });
-        }, 300000);
-    }
+    // public checkDeviceStatus(maxUsageTime) {
+    //     setInterval(async () => {
+    //         const devices = await this._unitOfWork.devices.find(<IDevice>{ status: Status.BUSY });
+    //         devices.forEach(async (device) => {
+    //             const now = Date.now();
+    //             if (now - device.startedAt > maxUsageTime) {
+    //                 await this.killDevices(device);
+    //                 await this.boot({ "name": device.name }, 1);
+    //             }
+    //         });
+    //     }, 300000);
+    // }
 
     private async killDevice(device) {
         log(`Kill device: ${device}`);
