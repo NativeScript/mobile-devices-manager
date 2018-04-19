@@ -59,7 +59,7 @@ export class DeviceManager {
         if (device && this.isAndroid(device)
             && (this.checkDeviceUsageHasReachedLimit(maxDeviceRebootCycles, device)
                 || AndroidController.checkApplicationNotRespondingDialogIsDisplayed(device))) {
-            AndroidController.reboot(device);
+            device = AndroidController.reboot(device);
             log(`Device: ${device.name}/ ${device.token} is rebooted!`);
             this.resetUsage(device);
         }
@@ -118,7 +118,7 @@ export class DeviceManager {
         }
 
         await this.killDevicesOverLimit({ type: device.type });
-        
+
         device = await this._unitOfWork.devices.findByToken(query.token);
 
         return device;
