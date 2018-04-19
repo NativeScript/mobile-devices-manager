@@ -59,7 +59,7 @@ export class DeviceManager {
         if (device && this.isAndroid(device)
             && (this.checkDeviceUsageHasReachedLimit(maxDeviceRebootCycles, device)
                 || AndroidController.checkApplicationNotRespondingDialogIsDisplayed(device))) {
-            device = AndroidController.reboot(device);
+            device = await AndroidController.reboot(device);
             log(`Device: ${device.name}/ ${device.token} is rebooted!`);
             this.resetUsage(device);
         }
