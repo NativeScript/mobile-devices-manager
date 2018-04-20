@@ -51,26 +51,16 @@ export class DeviceManager {
         delete query["maxDeviceRebootCycles"];
         const searchQuery: IDevice = DeviceManager.convertIDeviceToQuery(query);
         delete searchQuery.info;
-        searchQuery.status = Status.BOOTED;
-
-        let bootedDevicesByQuery = await this._unitOfWork.devices.find(searchQuery);
 
         searchQuery.status = Status.BUSY;
         const busyDevices = await this._unitOfWork.devices.find(searchQuery);
-        let shouldReloadDevices = false;
         for (let index = 0; index < busyDevices.length; index++) {
             let d = busyDevices[index];
             const result = await this.refreshDeviceStatus(d, Status.BUSY);
-            if (d && result
-                 && result.status === Status.SHUTDOWN 
-                 && result.status !== d.status) {
-                shouldReloadDevices = false;
-            }
         }
 
-        if (shouldReloadDevices) {
-            bootedDevicesByQuery = await this._unitOfWork.devices.find(searchQuery);
-        }
+        searchQuery.status = Status.BOOTED;
+        let bootedDevicesByQuery = await this._unitOfWork.devices.find(searchQuery);
 
         let device: any = bootedDevicesByQuery.length > 0 ? bootedDevicesByQuery[0] : undefined;
         device = await this.refreshDeviceStatus(device, Status.BOOTED);
