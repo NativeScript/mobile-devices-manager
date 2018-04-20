@@ -56,7 +56,7 @@ export class DeviceManager {
         const busyDevices = await this._unitOfWork.devices.find(searchQuery);
         for (let index = 0; index < busyDevices.length; index++) {
             let d = busyDevices[index];
-            const result = await this.refreshDeviceStatus(d, Status.BUSY);
+            const result = await this.refreshDeviceStatus(d, Status.BOOTED);
         }
 
         searchQuery.status = Status.BOOTED;
