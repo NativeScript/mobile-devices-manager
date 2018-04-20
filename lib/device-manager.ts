@@ -201,13 +201,15 @@ export class DeviceManager {
             return this._unitOfWork.devices.find(updateQuery);
         } else {
             const devices = await this._unitOfWork.devices.find(<IDevice>query);
-            devices.forEach(async (device) => {
-                await DeviceController.kill(device);
+            for (let index = 0; index < devices.length; index++) {
+                const device = devices[index];
+                await this.killDevice(device);
                 const log = await this._unitOfWork.devices.update(device.token, <IDevice>updateQuery);
-            });
+                
+            }
         }
 
-        await this.refreshData(query, updateQuery);
+        return this._unitOfWork.devices.find(updateQuery);
     }
 
     public async refreshData(query, updateQuery) {
@@ -227,7 +229,7 @@ export class DeviceManager {
                 await this._unitOfWork.devices.addMany(devices);
                 const result = await this._unitOfWork.devices.find(<Device>updateQuery);
 
-                resolve(result);
+                return resolve(result);
             };
         });
     }
