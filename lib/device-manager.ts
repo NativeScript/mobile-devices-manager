@@ -46,21 +46,25 @@ export class DeviceManager {
         return bootedDevices;
     }
 
-    public async subscribeForDevice(query): Promise<IDevice> {
-        const maxDeviceRebootCycles = query["maxDeviceRebootCycles"] > 0 ? query["maxDeviceRebootCycles"] : this.maxDeviceRebootCycles;
-        delete query["maxDeviceRebootCycles"];
-        const searchQuery: IDevice = DeviceManager.convertIDeviceToQuery(query);
-        delete searchQuery.info;
-
+    private async checkBusyDevicesStatus(searchQuery: any) {
         searchQuery.status = Status.BUSY;
         const busyDevices = await this._unitOfWork.devices.find(searchQuery);
         for (let index = 0; index < busyDevices.length; index++) {
             let d = busyDevices[index];
             const result = await this.refreshDeviceStatus(d, Status.BOOTED);
         }
+    }
+
+    public async subscribeForDevice(query): Promise<IDevice> {
+        const maxDeviceRebootCycles = query["maxDeviceRebootCycles"] > 0 ? query["maxDeviceRebootCycles"] : this.maxDeviceRebootCycles;
+        delete query["maxDeviceRebootCycles"];
+        const searchQuery: IDevice = DeviceManager.convertIDeviceToQuery(query);
+        delete searchQuery.info;
+
+        await this.checkBusyDevicesStatus(searchQuery);
 
         searchQuery.status = Status.BOOTED;
-        let bootedDevicesByQuery = await this._unitOfWork.devices.find(searchQuery);
+        const bootedDevicesByQuery = await this._unitOfWork.devices.find(searchQuery);
 
         let device: any = bootedDevicesByQuery.length > 0 ? bootedDevicesByQuery[0] : undefined;
         device = await this.refreshDeviceStatus(device, Status.BOOTED);
@@ -205,7 +209,7 @@ export class DeviceManager {
                 const device = devices[index];
                 await this.killDevice(device);
                 const log = await this._unitOfWork.devices.update(device.token, <IDevice>updateQuery);
-                
+
             }
         }
 
