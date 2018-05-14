@@ -7,7 +7,8 @@ export declare class DeviceManager {
     private readonly maxDeviceRebootCycles;
     private _usedDevices;
     constructor(_unitOfWork: IUnitOfWork, _useLocalRepository?: boolean);
-    boot(query: any, count: any, shouldUpdate?: boolean): Promise<IDevice[]>;
+    boot(query: any, count: any, shouldUpdate?: boolean): Promise<any[]>;
+    private checkBusyDevicesStatus(searchQuery);
     subscribeForDevice(query: any): Promise<IDevice>;
     unsubscribeFromDevice(query: any, maxDeviceUsage: any): Promise<IDevice>;
     private refreshDeviceStatus(device, expectedStatus);
@@ -16,7 +17,7 @@ export declare class DeviceManager {
     killDevices(query?: any): Promise<{}>;
     refreshData(query: any, updateQuery: any): Promise<{}>;
     dropdb(): Promise<{}>;
-    update(token: any, udpateQuery: any): Promise<IDevice>;
+    update(token: any, udpateQuery: any): Promise<any>;
     private killDevice(device);
     private mark(query);
     private createModel(device);

@@ -268,7 +268,9 @@ export class DeviceManager {
             const avdsDirectory = process.env["AVDS_STORAGE"] || join(process.env["HOME"], "/.android/avd");
             const avd = resolve(avdsDirectory, `${device.name}.avd`);
             getAllFileNames(avd).filter(f => f.endsWith(".lock")).forEach(f => {
-                rmdirSync(f);
+                try {
+                    rmdirSync(resolve(avd, f));
+                } catch (error) { }
             });
         }
         const updateQuery: any = {};
