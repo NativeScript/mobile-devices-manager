@@ -270,10 +270,16 @@ export class DeviceManager {
             getAllFileNames(avd).filter(f => f.endsWith(".lock")).forEach(f => {
                 try {
                     const path = resolve(avd, f);
+                    console.log(`Try to delete ${path}!`);
+                    
                     if(existsSync(path)){
+                        console.log(`Deleting ${path}!`);
                         rmdirSync(path);
+                        console.log(`Deleted ${path}!`);                        
                     }
-                } catch (error) { }
+                } catch (error) { 
+                    console.log(`Failed to delete lock file in ${avd}!`);   
+                }
             });
         }
         const updateQuery: any = {};
