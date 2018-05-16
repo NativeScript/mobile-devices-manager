@@ -11,7 +11,7 @@ import {
     Status
 } from "mobile-devices-controller";
 import { log, resolve, getAllFileNames } from "./utils";
-import { Stats, rmdirSync } from "fs";
+import { Stats, rmdirSync, existsSync } from "fs";
 import { join } from "path";
 
 export class DeviceManager {
@@ -269,7 +269,10 @@ export class DeviceManager {
             const avd = resolve(avdsDirectory, `${device.name}.avd`);
             getAllFileNames(avd).filter(f => f.endsWith(".lock")).forEach(f => {
                 try {
-                    rmdirSync(resolve(avd, f));
+                    const path = resolve(avd, f);
+                    if(existsSync(path)){
+                        rmdirSync(path);
+                    }
                 } catch (error) { }
             });
         }
