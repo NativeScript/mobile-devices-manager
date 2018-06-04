@@ -33,7 +33,7 @@ export class LocalRepository<T extends IDevice> implements IRepository<T> {
         const devices = await this.filter(query);
 
         const idevices = new Array();
-        devices.forEach(device => {
+        devices.forEach( device => {
             idevices.push(LocalRepository.convertIDeviceToQuery(device));
         });
 

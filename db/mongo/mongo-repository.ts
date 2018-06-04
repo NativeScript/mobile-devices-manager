@@ -76,7 +76,13 @@ export class MongoRepository<T extends IDeviceModel> implements IRepository<T> {
     };
 
     private static convertIModelDeviceToIDevice(from: any) {
-        return MongoRepository.filterConfigOptions(JSON.parse(JSON.stringify(from)));
+        const nameObject = from.name;
+        delete from.name;
+        const newObject = MongoRepository.filterConfigOptions(JSON.parse(JSON.stringify(from)));
+        if (nameObject) {
+            newObject.name = nameObject;
+        }
+        return newObject;
     }
 
     // private copyDeviceToIDeviceModel(device: T, deviceModel: IDeviceModel) {

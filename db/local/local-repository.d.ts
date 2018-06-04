@@ -5,19 +5,19 @@ export declare class LocalRepository<T extends IDevice> implements IRepository<T
     find(query: any): Promise<Array<T>>;
     findByToken(token: any): Promise<T>;
     findSingle(item: any): Promise<T>;
-    private filter(query);
+    private filter;
     update(token: string, obj: T): Promise<any>;
     add(item: T): Promise<any>;
     addMany(item: T[]): Promise<any>;
     deleteMany(item: any): Promise<any>;
     remove(item: any): Promise<void>;
     dropDb(): any;
-    private setDiveceStatus(device);
-    private static getInfo(device);
-    private static setInfo(device);
-    private static writeToStorage(device);
-    private static copyProperties(from);
-    private static convertIDeviceToQuery(from);
-    private static getStorageDir(token);
-    private createStorage(token);
+    private setDiveceStatus;
+    private static getInfo;
+    private static setInfo;
+    private static writeToStorage;
+    private static copyProperties;
+    private static convertIDeviceToQuery;
+    private static getStorageDir;
+    private createStorage;
 }

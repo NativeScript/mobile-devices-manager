@@ -64,6 +64,10 @@ export class DeviceManager {
         await this.checkBusyDevicesStatus(searchQuery);
 
         searchQuery.status = Status.BOOTED;
+        if (searchQuery.name) {
+            const regex = (new RegExp(searchQuery.name, "i")).compile();
+            searchQuery.name = { $regex: regex };
+        }
         const bootedDevicesByQuery = await this._unitOfWork.devices.find(searchQuery);
 
         let device: any = bootedDevicesByQuery.length > 0 ? bootedDevicesByQuery[0] : undefined;
@@ -271,14 +275,14 @@ export class DeviceManager {
                 try {
                     const path = resolve(avd, f);
                     console.log(`Try to delete ${path}!`);
-                    
-                    if(existsSync(path)){
+
+                    if (existsSync(path)) {
                         console.log(`Deleting ${path}!`);
                         rmdirSync(path);
-                        console.log(`Deleted ${path}!`);                        
+                        console.log(`Deleted ${path}!`);
                     }
-                } catch (error) { 
-                    console.log(`Failed to delete lock file in ${avd}!`);   
+                } catch (error) {
+                    console.log(`Failed to delete lock file in ${avd}!`);
                 }
             });
         }
