@@ -65,7 +65,7 @@ export class DeviceManager {
         await this.checkBusyDevicesStatus(searchQuery);
 
         searchQuery.status = Status.BOOTED;
-        if (searchQuery.name && (searchQuery.type === DeviceType.EMULATOR || searchQuery.platform === Platform.ANDROID)) {
+        if (searchQuery.name) {
             const regex = (new RegExp(searchQuery.name, "i")).compile();
             searchQuery.name = { $regex: regex };
         }
