@@ -66,7 +66,7 @@ export class DeviceManager {
 
         searchQuery.status = Status.BOOTED;
         if (searchQuery.name) {
-            const regex = (new RegExp(searchQuery.name, "i")).compile();
+            const regex = (new RegExp(searchQuery.name, 'i'));
             searchQuery.name = { $regex: regex };
         }
         const bootedDevicesByQuery = await this._unitOfWork.devices.find(searchQuery);
@@ -116,7 +116,7 @@ export class DeviceManager {
             device = await this._unitOfWork.devices.findByToken(device.token);
             this.increaseDevicesUsage(device);
         } else {
-            log(`Could find device ${query}`);
+            log(`Could find device ${query}`, query);
             device = await this.unmark(device);
         }
 

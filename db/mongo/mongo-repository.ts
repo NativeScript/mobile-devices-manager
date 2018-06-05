@@ -68,7 +68,7 @@ export class MongoRepository<T extends IDeviceModel> implements IRepository<T> {
 
     private static filterConfigOptions = (options, newObj: any = {}) => {
         Object.getOwnPropertyNames(options).forEach(key => {
-            if (options[key] && !key.startsWith("_") && !key.startsWith("$") && !key.startsWith("doc")) {
+            if (key != "name" && options[key] && !key.startsWith("_") && !key.startsWith("$") && !key.startsWith("doc")) {
                 newObj[key] = options[key];
             }
         });
@@ -77,14 +77,11 @@ export class MongoRepository<T extends IDeviceModel> implements IRepository<T> {
 
     private static convertIModelDeviceToIDevice(from: any) {
         const nameObject = from["name"] || from["_name"];
-        if (from.name) {
-            delete from.name;
-        }
+
         const newObject = MongoRepository.filterConfigOptions(JSON.parse(JSON.stringify(from)));
+        
         if (nameObject) {
             newObject["name"] = nameObject;
-            from["name"] = nameObject;
-            from["_name"] = nameObject;
         }
 
         return newObject;
