@@ -1,14 +1,14 @@
 {
   "name": "mobile-devices-manager",
   "description": "Manage emulators, simulators and real devices",
-  "version": "1.4.2",
+  "version": "1.4.3",
   "author": "SvetoslavTsenov",
   "bin": {
     "nsmdm": "./bin/nsmdm"
   },
   "main": "index.js",
   "dependencies": {
-    "mobile-devices-controller": "^2.4.9",
+    "mobile-devices-controller": "^2.5.0",
     "mongoose": "^4.6.7",
     "morgan": "^1.7.0",
     "pug": "^2.0.0-beta6",
