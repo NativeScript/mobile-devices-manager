@@ -14,6 +14,7 @@ import { log, resolve, getAllFileNames } from "./utils";
 import { Stats, rmdirSync, existsSync } from "fs";
 import { join } from "path";
 
+
 export class DeviceManager {
 
     private readonly maxDeviceUsage;
@@ -64,7 +65,7 @@ export class DeviceManager {
         await this.checkBusyDevicesStatus(searchQuery);
 
         searchQuery.status = Status.BOOTED;
-        if (searchQuery.name) {
+        if (searchQuery.name && searchQuery.type === DeviceType.EMULATOR) {
             const regex = (new RegExp(searchQuery.name, "i")).compile();
             searchQuery.name = { $regex: regex };
         }
