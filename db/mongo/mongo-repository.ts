@@ -76,11 +76,11 @@ export class MongoRepository<T extends IDeviceModel> implements IRepository<T> {
     };
 
     private static convertIModelDeviceToIDevice(from: any) {
-        const nameObject = from.name;
+        const nameObject = from["name"] || from["_name"];
         delete from.name;
         const newObject = MongoRepository.filterConfigOptions(JSON.parse(JSON.stringify(from)));
         if (nameObject) {
-            newObject.name = nameObject;
+            newObject["name"] = nameObject;
         }
         return newObject;
     }
