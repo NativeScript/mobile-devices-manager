@@ -119,8 +119,10 @@ export class DeviceManager {
             device = await this._unitOfWork.devices.findByToken(device.token);
             this.increaseDevicesUsage(device);
             if ((device.platform === Platform.ANDROID || device.type === DeviceType.EMULATOR) && this.checkDeviceUsageHasReachedLimit(5, device)) {
+                logInfo(`Rebooting device: ${device.name} ${device.token} on ${new Date(Date.now())} since max ussage limit reached!`);
+
                 AndroidController.reboot(device);
-                console.log(`On: ${new Date(Date.now())} device: ${device.name} ${device.token} is rebooted!`);
+                logInfo(`On: ${new Date(Date.now())} device: ${device.name} ${device.token} is rebooted!`);
                 this.resetUsage(device);
             }
         } else {
@@ -128,8 +130,9 @@ export class DeviceManager {
         }
         if (device && device.type === DeviceType.EMULATOR || device.platform === Platform.ANDROID) {
             if (AndroidController.checkApplicationNotRespondingDialogIsDisplayed(device)) {
+                logInfo(`Rebooting device: ${device.name} ${device.token} on ${new Date(Date.now())} since error message is detected!`);
                 AndroidController.reboot(device);
-                console.log(`On: ${new Date(Date.now())} device: ${device.name} ${device.token} is rebooted!`);
+                logInfo(`On: ${new Date(Date.now())} device: ${device.name} ${device.token} is rebooted!`);
             }
         }
 
