@@ -5,12 +5,10 @@ import {
     IOSController,
     DeviceController,
     IDevice,
-    Device,
     Platform,
     DeviceType,
     Status
 } from "mobile-devices-controller";
-import { Stats } from "fs";
 import { logInfo, logError } from "./utils";
 
 export class DeviceManager {
