@@ -13,5 +13,5 @@ export declare class MongoRepository<T extends IDeviceModel> implements IReposit
     update(token: string, values: T): Promise<any>;
     remove(item: T): Promise<void>;
     dropDb(): Promise<void>;
-    private copyDeviceToIDeviceModel(device, deviceModel);
+    private copyDeviceToIDeviceModel;
 }

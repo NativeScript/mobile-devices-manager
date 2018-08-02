@@ -11,6 +11,7 @@ import {
     Status
 } from "mobile-devices-controller";
 import { Stats } from "fs";
+import { logInfo, logError } from "./utils";
 
 export class DeviceManager {
 
@@ -49,6 +50,7 @@ export class DeviceManager {
         // get already booted device in order to reuse
         let device = await this._unitOfWork.devices.findSingle(searchQuery);
         if (shouldRestartDevice && device) {
+            logInfo("Should restart device flag passed!")
             this.killDevice(device);
             device = undefined;
         }
@@ -66,12 +68,18 @@ export class DeviceManager {
             currentQueryProperty["status"] = Status.BUSY;
             const busyDevicesCount = (await this._unitOfWork.devices.find(currentQueryProperty)).length;
             if (busyDevicesCount > maxDevicesCount) {
+                logError("MAX DEVICE COUNT REACHED!!!");
                 throw new Error("MAX DEVICE COUNT REACHED!!!");
             }
 
             currentQueryProperty["status"] = Status.BOOTED;
             const bootedDevices = (await this._unitOfWork.devices.find(currentQueryProperty));
-            const shouldKillDevice = bootedDevices && bootedDevices.length > 0 && (bootedDevices.length > maxDevicesCount);
+            const shouldKillDevices = bootedDevices && bootedDevices.length > 0 && (bootedDevices.length > maxDevicesCount);
+            if (shouldKillDevices) {
+                logInfo(`Max device count reached!!! Booted devices count: ${bootedDevices.length} > max device count: ${maxDevicesCount}!!!`);
+                logInfo(`Killing all booted device!!!`)
+                this.killDevices(bootedDevices);
+            }
             searchQuery.status = Status.SHUTDOWN;
             device = await this._unitOfWork.devices.findSingle(searchQuery);
 
@@ -94,9 +102,6 @@ export class DeviceManager {
                 device.status = bootedDevice.status;
                 device.pid = bootedDevice.pid;
                 this.resetUsage(device);
-                if (shouldKillDevice) {
-                    this.killDevices(bootedDevices);
-                }
 
                 if (!device) {
                     delete searchQuery.status;
@@ -167,8 +172,7 @@ export class DeviceManager {
             const devices = await this._unitOfWork.devices.find(query);
             for (let index = 0; index < devices.length; index++) {
                 const element = devices[index];
-                await DeviceController.kill(element);
-                const log = await this._unitOfWork.devices.update(element.token, updateQuery);               
+                await this.killDevice(element);            
             }
         }
 
@@ -220,12 +224,14 @@ export class DeviceManager {
     }
 
     private async killDevice(device) {
+        logInfo("Killing device", device);
         await DeviceController.kill(device);
         const updateQuery: any = {};
         updateQuery['status'] = Status.SHUTDOWN;
         updateQuery['startedAt'] = -1;
         updateQuery['busySince'] = -1;
         const log = await this._unitOfWork.devices.update(device.token, updateQuery);
+        logInfo(`Update log`, log);
     }
 
     private async mark(query): Promise<{ status: Status, busySince: number }> {

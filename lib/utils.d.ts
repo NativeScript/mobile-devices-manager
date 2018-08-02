@@ -18,3 +18,6 @@ export declare function mkDir(dir: any): void;
 export declare function mkFile(file: string, content: any): void;
 export declare function writeFileToJson(file: any, content: any): void;
 export declare function readJsonFromFile(file: any): any;
+export declare function logInfo(info: any, obj?: any): void;
+export declare function logWarn(info: any, obj?: any): void;
+export declare function logError(info: any, obj?: any): void;
