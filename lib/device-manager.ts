@@ -49,7 +49,7 @@ export class DeviceManager {
         // get already booted device in order to reuse
         let device = await this._unitOfWork.devices.findSingle(searchQuery);
         if (shouldRestartDevice && device) {
-            DeviceController.kill(device);
+            this.killDevice(device);
             device = undefined;
         }
         let maxDevicesCount = ((query.type === DeviceType.EMULATOR || query.platform === Platform.ANDROID) ? process.env['MAX_EMU_COUNT'] : process.env['MAX_SIM_COUNT']) || 1;
@@ -71,7 +71,7 @@ export class DeviceManager {
 
             currentQueryProperty["status"] = Status.BOOTED;
             const bootedDevices = (await this._unitOfWork.devices.find(currentQueryProperty));
-            const shouldKillDevice = bootedDevices && bootedDevices.length > 0 && (bootedDevices.length === maxDevicesCount);
+            const shouldKillDevice = bootedDevices && bootedDevices.length > 0 && (bootedDevices.length > maxDevicesCount);
             searchQuery.status = Status.SHUTDOWN;
             device = await this._unitOfWork.devices.findSingle(searchQuery);
 
@@ -95,9 +95,7 @@ export class DeviceManager {
                 device.pid = bootedDevice.pid;
                 this.resetUsage(device);
                 if (shouldKillDevice) {
-                    this.killDevice(bootedDevices[0]);
-                    const upQuery: any = { 'status': Status.SHUTDOWN };
-                    await this._unitOfWork.devices.update(bootedDevices[0].token, upQuery);
+                    this.killDevices(bootedDevices);
                 }
 
                 if (!device) {
@@ -167,10 +165,11 @@ export class DeviceManager {
             return this._unitOfWork.devices.find(updateQuery);
         } else {
             const devices = await this._unitOfWork.devices.find(query);
-            devices.forEach(async (device) => {
-                await DeviceController.kill(device);
-                const log = await this._unitOfWork.devices.update(device.token, updateQuery);
-            });
+            for (let index = 0; index < devices.length; index++) {
+                const element = devices[index];
+                await DeviceController.kill(element);
+                const log = await this._unitOfWork.devices.update(element.token, updateQuery);               
+            }
         }
 
         await this.refreshData(query, updateQuery);
