@@ -128,7 +128,7 @@ export class DeviceManager {
             device = await this.unmark(device);
         }
         if (device && device.type === DeviceType.EMULATOR || device.platform === Platform.ANDROID) {
-            if (AndroidController.checkApplicationNotRespondingDialogIsDisplayed(device)) {
+            if (!AndroidController.checkIfEmulatorIsResponding(device)) {
                 logWarn(`Rebooting device: ${device.name} ${device.token} on ${new Date(Date.now())} since error message is detected!`);
                 AndroidController.reboot(device);
                 logInfo(`On: ${new Date(Date.now())} device: ${device.name} ${device.token} is rebooted!`);
