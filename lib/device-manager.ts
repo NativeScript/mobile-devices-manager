@@ -9,7 +9,7 @@ import {
     DeviceType,
     Status
 } from "mobile-devices-controller";
-import { logInfo, logError } from "./utils";
+import { logInfo, logError, wait } from "./utils";
 
 export class DeviceManager {
 
@@ -134,6 +134,7 @@ export class DeviceManager {
             }
         }
 
+        wait(2000);
         return <IDevice>device;
     }
 
@@ -173,7 +174,7 @@ export class DeviceManager {
             const devices = await this._unitOfWork.devices.find(query);
             for (let index = 0; index < devices.length; index++) {
                 const element = devices[index];
-                await this.killDevice(element);            
+                await this.killDevice(element);
             }
         }
 

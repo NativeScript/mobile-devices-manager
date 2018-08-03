@@ -241,6 +241,11 @@ export function readJsonFromFile(file) {
     return json;
 }
 
+export const wait = miliseconds => {
+    const startTime = Date.now();
+    while (Date.now() - startTime <= miliseconds) { }
+    return true;
+}
 
 export function logInfo(info, obj = undefined) {
     if (obj) {
