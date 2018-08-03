@@ -1,7 +1,7 @@
 {
   "name": "mobile-devices-manager",
   "description": "Manage emulators, simulators and real devices",
-  "version": "1.2.0",
+  "version": "1.4.5",
   "author": "SvetoslavTsenov",
   "bin": {
     "nsmdm": "./bin/nsmdm"
@@ -11,9 +11,9 @@
     "mobile-devices-controller": "^2.7.0",
     "mongoose": "^4.6.7",
     "morgan": "^1.7.0",
+    "nodemon": "^1.11.0",
     "pug": "^2.0.0-beta6",
     "q": "^1.4.1",
-    "nodemon": "^1.11.0",
     "yargs": "^10.0.3"
   },
   "devDependencies": {
