@@ -5,13 +5,13 @@ export declare class DeviceManager {
     private _useLocalRepository;
     private _usedDevices;
     constructor(_unitOfWork: IUnitOfWork, _useLocalRepository?: boolean);
-    boot(query: any, count: any, shouldUpdate?: boolean): Promise<IDevice[]>;
+    boot(query: any, count: any, shouldUpdate?: boolean): Promise<any[]>;
     subscribeForDevice(query: any): Promise<IDevice>;
     unsubscribeFromDevice(query: any): Promise<IDevice>;
     killDevices(query?: any): Promise<{}>;
     refreshData(query: any, updateQuery: any): Promise<{}>;
     dropdb(): Promise<{}>;
-    update(token: any, udpateQuery: any): Promise<IDevice>;
+    update(token: any, udpateQuery: any): Promise<any>;
     checkDeviceStatus(maxUsageTime: any): void;
     private killDevice;
     private mark;

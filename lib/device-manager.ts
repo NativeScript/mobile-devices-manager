@@ -10,7 +10,7 @@ import {
     Status
 } from "mobile-devices-controller";
 import { logInfo, logError, wait } from "./utils";
-import { logWarn } from "../node_modules/mobile-devices-controller/lib/utils";
+import { logWarn } from "./utils";
 
 export class DeviceManager {
 
