@@ -72,7 +72,7 @@ export class DeviceManager {
 
             currentQueryProperty["status"] = Status.BOOTED;
             const bootedDevices = (await this._unitOfWork.devices.find(currentQueryProperty));
-            const shouldKillDevices = bootedDevices && bootedDevices.length > 0 && (bootedDevices.length > maxDevicesCount);
+            const shouldKillDevices = bootedDevices && bootedDevices.length > 0 && (bootedDevices.length + busyDevicesCount > maxDevicesCount);
             if (shouldKillDevices) {
                 logInfo(`Max device count reached!!! Booted devices count: ${bootedDevices.length} > max device count: ${maxDevicesCount}!!!`);
                 logInfo(`Killing all booted device!!!`)
