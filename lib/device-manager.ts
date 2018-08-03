@@ -10,6 +10,7 @@ import {
     Status
 } from "mobile-devices-controller";
 import { logInfo, logError, wait } from "./utils";
+import { logWarn } from "../node_modules/mobile-devices-controller/lib/utils";
 
 export class DeviceManager {
 
@@ -74,8 +75,8 @@ export class DeviceManager {
             const bootedDevices = (await this._unitOfWork.devices.find(currentQueryProperty));
             const shouldKillDevices = bootedDevices && bootedDevices.length > 0 && (bootedDevices.length + busyDevicesCount > maxDevicesCount);
             if (shouldKillDevices) {
-                logInfo(`Max device count reached!!! Booted devices count: ${bootedDevices.length} > max device count: ${maxDevicesCount}!!!`);
-                logInfo(`Killing all booted device!!!`)
+                logWarn(`Max device count reached!!! Booted devices count: ${bootedDevices.length} > max device count: ${maxDevicesCount}!!!`);
+                logWarn(`Killing all booted device!!!`)
                 this.killDevices(bootedDevices);
             }
             searchQuery.status = Status.SHUTDOWN;
@@ -117,7 +118,7 @@ export class DeviceManager {
             device = await this._unitOfWork.devices.findByToken(device.token);
             this.increaseDevicesUsage(device);
             if ((device.platform === Platform.ANDROID || device.type === DeviceType.EMULATOR) && this.checkDeviceUsageHasReachedLimit(5, device)) {
-                logInfo(`Rebooting device: ${device.name} ${device.token} on ${new Date(Date.now())} since max ussage limit reached!`);
+                logWarn(`Rebooting device: ${device.name} ${device.token} on ${new Date(Date.now())} since max ussage limit reached!`);
 
                 AndroidController.reboot(device);
                 logInfo(`On: ${new Date(Date.now())} device: ${device.name} ${device.token} is rebooted!`);
@@ -128,7 +129,7 @@ export class DeviceManager {
         }
         if (device && device.type === DeviceType.EMULATOR || device.platform === Platform.ANDROID) {
             if (AndroidController.checkApplicationNotRespondingDialogIsDisplayed(device)) {
-                logInfo(`Rebooting device: ${device.name} ${device.token} on ${new Date(Date.now())} since error message is detected!`);
+                logWarn(`Rebooting device: ${device.name} ${device.token} on ${new Date(Date.now())} since error message is detected!`);
                 AndroidController.reboot(device);
                 logInfo(`On: ${new Date(Date.now())} device: ${device.name} ${device.token} is rebooted!`);
             }
@@ -226,7 +227,7 @@ export class DeviceManager {
     }
 
     private async killDevice(device) {
-        logInfo("Killing device", device);
+        logWarn("Killing device", device);
         await DeviceController.kill(device);
         const updateQuery: any = {};
         updateQuery['status'] = Status.SHUTDOWN;
