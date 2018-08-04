@@ -53,34 +53,10 @@ export class DeviceManager {
             this.killDevice(device);
             device = undefined;
         }
-        let maxDevicesCount = ((query.type === DeviceType.EMULATOR || query.platform === Platform.ANDROID) ? process.env['MAX_EMU_COUNT'] : process.env['MAX_SIM_COUNT']) || 1;
 
         if (!device) {
-            searchQuery.status = Status.BUSY;
+            this.resetDevicesCountToMaxLimitedCount(query);
 
-            let currentQueryProperty: any = {};
-            if (query['platform']) {
-                currentQueryProperty["platform"] = query["platform"];
-            } else {
-                currentQueryProperty["type"] = query["type"];;
-            }
-            currentQueryProperty["status"] = Status.BUSY;
-            const busyDevicesCount = (await this._unitOfWork.devices.find(currentQueryProperty)).length;
-            if (busyDevicesCount > maxDevicesCount) {
-                logError("MAX DEVICE COUNT REACHED!!!");
-                //throw new Error("MAX DEVICE COUNT REACHED!!!");
-            }
-
-            currentQueryProperty["status"] = Status.BOOTED;
-            const bootedDevices = (await this._unitOfWork.devices.find(currentQueryProperty));
-
-            if (bootedDevices.length + busyDevicesCount >= maxDevicesCount) {
-                logWarn(`Max device count reached!!! Devices count: ${bootedDevices.length + busyDevicesCount} > max device count: ${maxDevicesCount}!!!`);
-                logWarn(`Killing all booted device!!! `, bootedDevices);
-                if (bootedDevices.length > 0) {
-                    this.killDevices(bootedDevices);
-                }
-            }
             searchQuery.status = Status.SHUTDOWN;
             device = await this._unitOfWork.devices.findSingle(searchQuery);
 
@@ -120,7 +96,7 @@ export class DeviceManager {
             device = await this._unitOfWork.devices.findByToken(device.token);
             this.increaseDevicesUsage(device);
             if ((device.platform === Platform.ANDROID || device.type === DeviceType.EMULATOR) && this.checkDeviceUsageHasReachedLimit(5, device)) {
-                logWarn(`Rebooting device: ${device.name} ${device.token} on ${new Date(Date.now())} since max ussage limit reached!`);
+                logWarn(`Rebooting device: ${device.name} ${device.token} on ${new Date(Date.now())}, since max usage limit per device reached!`);
 
                 AndroidController.reboot(device);
                 logInfo(`On: ${new Date(Date.now())} device: ${device.name} ${device.token} is rebooted!`);
@@ -129,6 +105,12 @@ export class DeviceManager {
         } else {
             device = await this.unmark(device);
         }
+
+        if (!device) {
+            logError("Could not find device", searchQuery);
+            return device;
+        }
+
         if (device && device.type === DeviceType.EMULATOR || device.platform === Platform.ANDROID) {
             if (!AndroidController.checkIfEmulatorIsResponding(device)) {
                 logWarn(`Rebooting device: ${device.name} ${device.token} on ${new Date(Date.now())} since error message is detected!`);
@@ -143,6 +125,7 @@ export class DeviceManager {
 
     public async unsubscribeFromDevice(query): Promise<IDevice> {
         const device = await this._unitOfWork.devices.findByToken(query.token);
+        let result;
         if (device) {
             device.busySince = -1;
             device.info = undefined;
@@ -150,8 +133,12 @@ export class DeviceManager {
                 device.status = Status.BOOTED;
             }
 
-            return await this.unmark(device);
+            result = await this.unmark(device);
         }
+
+        this.resetDevicesCountToMaxLimitedCount(device);
+
+        return result;
     }
 
     public async killDevices(query?) {
@@ -226,6 +213,74 @@ export class DeviceManager {
                 }
             });
         }, 300000);
+    }
+
+    private getMaxDeviceCount(query) {
+        const maxDevicesCount = ((query.type === DeviceType.EMULATOR || query.platform === Platform.ANDROID) ? process.env['MAX_EMU_COUNT'] : process.env['MAX_SIM_COUNT']) || 1;
+        return maxDevicesCount
+    }
+
+    private async resetDevicesCountToMaxLimitedCount(query) {
+        const currentQueryProperty: any = {};
+        if (query['platform']) {
+            currentQueryProperty["platform"] = query["platform"];
+        } else {
+            currentQueryProperty["type"] = query["type"];;
+        }
+
+        const filteOptions = options => {
+            Object.keys(options).forEach(key => !options[key] && delete options[key]);
+            return options;
+        };
+        //let typeQuery: any = { platform: query.platform, type: query.type }
+        //typeQuery = filteOptions(typeQuery);
+        currentQueryProperty.status = Status.BOOTED;
+        const bootedDevices = (await this._unitOfWork.devices.find(<any>currentQueryProperty));
+        logInfo(`Booted device count: ${bootedDevices.length}`);
+
+        currentQueryProperty.status = Status.BUSY;
+        let busyDevices = (await this._unitOfWork.devices.find(<any>currentQueryProperty));
+        logInfo(`Busy device count: ${busyDevices.length}`);
+
+        let updateBusyDevices = false;
+        for (let index = 0; index < busyDevices.length; index++) {
+            const element = busyDevices[index];
+            const twoHours =7200000;
+            if (element.busySince && element.startedAt && element.startedAt - element.busySince > twoHours) {
+                logWarn(`Killing device, since it has been BUSY more than ${twoHours}`);
+                this.killDevice(element);
+                updateBusyDevices = true;
+            }
+        }
+
+        if (updateBusyDevices) {
+            busyDevices = (await this._unitOfWork.devices.find(<any>currentQueryProperty));
+            logInfo(`Busy device count after update: ${busyDevices.length}`);
+        }
+
+        const maxDevicesCount = this.getMaxDeviceCount(query);
+
+        if (busyDevices.length > maxDevicesCount) {
+            logInfo("MAX device count: ", maxDevicesCount);
+            logError("MAX DEVICE COUNT REACHED!!!");
+        }
+
+        if (bootedDevices.length + busyDevices.length > maxDevicesCount) {
+            logWarn(`Max device count reached!!! Devices count: ${bootedDevices.length + busyDevices.length} > max device count: ${maxDevicesCount}!!!`);
+            const devicesToKill = new Array();
+            bootedDevices.forEach(d => devicesToKill.push({ name: d.name, token: d.token }));
+            if (bootedDevices.length > 0) {
+                const result = devicesToKill.join("\n");
+                logWarn(`Killing all booted device!!! `, result);
+                for (let index = 0; index < bootedDevices.length; index++) {
+                    const element = bootedDevices[index];
+                    await this.killDevice(element);
+                    wait(3000);
+                }
+            } else {
+                logWarn(`No free devices to kill. Probably all devices are with status BUSY!!!`);
+            }
+        }
     }
 
     private async killDevice(device) {
