@@ -68,15 +68,15 @@ export class DeviceManager {
             const busyDevicesCount = (await this._unitOfWork.devices.find(currentQueryProperty)).length;
             if (busyDevicesCount > maxDevicesCount) {
                 logError("MAX DEVICE COUNT REACHED!!!");
-                throw new Error("MAX DEVICE COUNT REACHED!!!");
+                //throw new Error("MAX DEVICE COUNT REACHED!!!");
             }
 
             currentQueryProperty["status"] = Status.BOOTED;
             const bootedDevices = (await this._unitOfWork.devices.find(currentQueryProperty));
-            const shouldKillDevices = bootedDevices && bootedDevices.length > 0 && (bootedDevices.length + busyDevicesCount > maxDevicesCount);
-            if (shouldKillDevices) {
-                logWarn(`Max device count reached!!! Booted devices count: ${bootedDevices.length} > max device count: ${maxDevicesCount}!!!`);
-                logWarn(`Killing all booted device!!!`)
+            
+            if (bootedDevices.length + busyDevicesCount >= maxDevicesCount) {
+                logWarn(`Max device count reached!!! Devices count: ${bootedDevices.length + busyDevicesCount} > max device count: ${maxDevicesCount}!!!`);
+                logWarn(`Killing all booted device!!! `, bootedDevices);
                 this.killDevices(bootedDevices);
             }
             searchQuery.status = Status.SHUTDOWN;
