@@ -54,9 +54,8 @@ export class DeviceManager {
             device = undefined;
         }
 
+        this.resetDevicesCountToMaxLimitedCount(query);
         if (!device) {
-            this.resetDevicesCountToMaxLimitedCount(query);
-
             searchQuery.status = Status.SHUTDOWN;
             device = await this._unitOfWork.devices.findSingle(searchQuery);
 
@@ -220,6 +219,21 @@ export class DeviceManager {
         return maxDevicesCount
     }
 
+    private killOverUsedBusyDevices(devices) {
+        const updatedDevice = new Array();
+        for (let index = 0; index < devices.length; index++) {
+            const element = devices[index];
+            const twoHours = 7200000;
+            if (element.busySince && element.startedAt && element.startedAt - element.busySince > twoHours) {
+                logWarn(`Killing device, since it has been BUSY more than ${twoHours}`);
+                this.killDevice(element);
+                updatedDevice.push(element);
+            }
+        }
+
+        return updatedDevice;
+    }
+
     private async resetDevicesCountToMaxLimitedCount(query) {
         const currentQueryProperty: any = {};
         let queryInfo = "";
@@ -245,18 +259,7 @@ export class DeviceManager {
         let busyDevices = (await this._unitOfWork.devices.find(<any>currentQueryProperty));
         logInfo(`Busy device count by ${queryInfo}: ${busyDevices.length}`);
 
-        let updateBusyDevices = false;
-        for (let index = 0; index < busyDevices.length; index++) {
-            const element = busyDevices[index];
-            const twoHours = 7200000;
-            if (element.busySince && element.startedAt && element.startedAt - element.busySince > twoHours) {
-                logWarn(`Killing device, since it has been BUSY more than ${twoHours}`);
-                this.killDevice(element);
-                updateBusyDevices = true;
-            }
-        }
-
-        if (updateBusyDevices) {
+        if (this.killOverUsedBusyDevices(busyDevices).length > 0) {
             busyDevices = (await this._unitOfWork.devices.find(<any>currentQueryProperty));
             logInfo(`Busy device count by ${queryInfo} after update: ${busyDevices.length}`);
         }
