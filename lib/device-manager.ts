@@ -238,7 +238,7 @@ export class DeviceManager {
         //let typeQuery: any = { platform: query.platform, type: query.type }
         //typeQuery = filteOptions(typeQuery);
         currentQueryProperty.status = Status.BOOTED;
-        const bootedDevices = (await this._unitOfWork.devices.find(<any>currentQueryProperty));
+        let bootedDevices = (await this._unitOfWork.devices.find(<any>currentQueryProperty));
         logInfo(`Booted device count by ${queryInfo}: ${bootedDevices.length}`);
 
         currentQueryProperty.status = Status.BUSY;
@@ -248,7 +248,7 @@ export class DeviceManager {
         let updateBusyDevices = false;
         for (let index = 0; index < busyDevices.length; index++) {
             const element = busyDevices[index];
-            const twoHours =7200000;
+            const twoHours = 7200000;
             if (element.busySince && element.startedAt && element.startedAt - element.busySince > twoHours) {
                 logWarn(`Killing device, since it has been BUSY more than ${twoHours}`);
                 this.killDevice(element);
@@ -280,10 +280,25 @@ export class DeviceManager {
                     await this.killDevice(element);
                     wait(3000);
                 }
+
+                bootedDevices = (await this._unitOfWork.devices.find(<any>currentQueryProperty));
+                logInfo(`Booted device count after update by ${queryInfo}: ${bootedDevices.length}`);
             } else {
                 logWarn(`No free devices to kill. Probably all devices are with status BUSY!!!`);
             }
         }
+        try {
+            let allRunningDevicesCount = 0
+            if (currentQueryProperty.platform === Platform.ANDROID || currentQueryProperty.type === DeviceType.EMULATOR) {
+                allRunningDevicesCount = (await AndroidController.parseRunningDevicesList(false)).filter(d => d.status === Status.BOOTED).length;
+            } else {
+                (await IOSController.getAllDevices(false)).forEach((v, k, m) => {
+                    allRunningDevicesCount += (v.filter(d => d.status === Status.BOOTED).length);
+                });
+            }
+            //const allRunningDevicesCount = (await DeviceController.getDivices(currentQueryProperty)).filter(d => d.status === Status.BOOTED);
+            logInfo(`All running devices by ${queryInfo} count: ${allRunningDevicesCount}!`);
+        } catch (error) { }
     }
 
     private async killDevice(device) {
