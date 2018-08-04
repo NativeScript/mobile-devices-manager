@@ -73,11 +73,13 @@ export class DeviceManager {
 
             currentQueryProperty["status"] = Status.BOOTED;
             const bootedDevices = (await this._unitOfWork.devices.find(currentQueryProperty));
-            
+
             if (bootedDevices.length + busyDevicesCount >= maxDevicesCount) {
                 logWarn(`Max device count reached!!! Devices count: ${bootedDevices.length + busyDevicesCount} > max device count: ${maxDevicesCount}!!!`);
                 logWarn(`Killing all booted device!!! `, bootedDevices);
-                this.killDevices(bootedDevices);
+                if (bootedDevices.length > 0) {
+                    this.killDevices(bootedDevices);
+                }
             }
             searchQuery.status = Status.SHUTDOWN;
             device = await this._unitOfWork.devices.findSingle(searchQuery);
