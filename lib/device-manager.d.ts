@@ -14,6 +14,7 @@ export declare class DeviceManager {
     update(token: any, udpateQuery: any): Promise<IDevice>;
     checkDeviceStatus(maxUsageTime: any): void;
     private getMaxDeviceCount;
+    private killOverUsedBusyDevices;
     private resetDevicesCountToMaxLimitedCount;
     private killDevice;
     private mark;

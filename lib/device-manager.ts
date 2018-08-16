@@ -24,13 +24,17 @@ export class DeviceManager {
         if (!query.platform) {
             query.platform = query.platform ? query.platform : (query.type === DeviceType.EMULATOR ? Platform.ANDROID : Platform.IOS);
         }
+        
+        const options = query.options;
+        delete query.options;
+
         let simulators = await this._unitOfWork.devices.find(query);
 
         const maxDevicesToBoot = Math.min(simulators.length, parseInt(count || 1));
         const startedDevices = new Array<IDevice>();
         for (var index = 0; index < maxDevicesToBoot; index++) {
             let device: IDevice = simulators[index];
-            device = await DeviceController.startDevice(device);
+            device = await DeviceController.startDevice(device, options);
             if (shouldUpdate) {
                 const result = await this._unitOfWork.devices.update(device.token, device);
             }
