@@ -58,7 +58,7 @@ export class DeviceManager {
             device = undefined;
         }
 
-        this.resetDevicesCountToMaxLimitedCount(query);
+        //this.resetDevicesCountToMaxLimitedCount(query);
         if (!device) {
             searchQuery.status = Status.SHUTDOWN;
             device = await this._unitOfWork.devices.findSingle(searchQuery);
