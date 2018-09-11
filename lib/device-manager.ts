@@ -98,13 +98,6 @@ export class DeviceManager {
             await this._unitOfWork.devices.update(device.token, device);
             device = await this._unitOfWork.devices.findByToken(device.token);
             this.increaseDevicesUsage(device);
-            if ((device.platform === Platform.ANDROID || device.type === DeviceType.EMULATOR) && this.checkDeviceUsageHasReachedLimit(5, device)) {
-                logWarn(`Rebooting device: ${device.name} ${device.token} on ${new Date(Date.now())}, since max usage limit per device reached!`);
-
-                AndroidController.reboot(device);
-                logInfo(`On: ${new Date(Date.now())} device: ${device.name} ${device.token} is rebooted!`);
-                this.resetUsage(device);
-            }
         } else {
             device = await this.unmark(device);
         }
@@ -269,8 +262,28 @@ export class DeviceManager {
             logInfo(`Busy device count by ${queryInfo} after update: ${busyDevices.length}`);
         }
 
-        const maxDevicesCount = this.getMaxDeviceCount(query);
+        if (bootedDevices.length > 0) {
+            const devicesToKill = new Array();
+            bootedDevices.forEach(d => devicesToKill.push({ name: d.name, token: d.token }));
+            devicesToKill.forEach(o => console.log("Device: ", o));
+            for (let index = 0; index < bootedDevices.length; index++) {
+                const element = bootedDevices[index];
+                devicesToKill.push(element);
+                if (this.checkDeviceUsageHasReachedLimit(element)) {
+                    logWarn("Device usage has reached the limit! ", element.name);
+                    await this.killDevice(element);
+                    wait(3000);
+                    this.resetUsage(element);
+                }
+            }
 
+            if (devicesToKill.length > 0) {
+                bootedDevices = (await this._unitOfWork.devices.find(<any>currentQueryProperty));
+                logInfo(`Booted device count after reset ${queryInfo}: ${bootedDevices.length}`);
+            }
+        }
+
+        const maxDevicesCount = this.getMaxDeviceCount(query);
         if (busyDevices.length > maxDevicesCount) {
             logInfo("MAX device count: ", maxDevicesCount);
             logError(`MAX DEVICE COUNT  by ${queryInfo} REACHED!!!`);
@@ -392,11 +405,21 @@ export class DeviceManager {
         this._usedDevices.set(device.token, 0);
     }
 
-    private checkDeviceUsageHasReachedLimit(count: number, device: IDevice): boolean {
+    private checkDeviceUsageHasReachedLimit(device: IDevice): boolean {
+        const limitCount = device.type === DeviceType.EMULATOR || device.platform === Platform.ANDROID ? DeviceManager.getEmuUsageLimit() : DeviceManager.getSimUsageLimit();
         if (this._usedDevices.has(device.token) === false || this._usedDevices.get(device.token) === 0) {
             return false;
         }
 
-        return this._usedDevices.get(device.token) >= count ? true : false;
+        console.log(`Device: ${device.token} usage limit: ${limitCount}`)
+        return this._usedDevices.get(device.token) >= limitCount ? true : false;
+    }
+
+    private static getEmuUsageLimit() {
+        return process.env["EMU_USAGE_LIMIT"] || 1;
+    }
+
+    private static getSimUsageLimit() {
+        return process.env["SIM_USAGE_LIMIT"] || 10;
     }
 }

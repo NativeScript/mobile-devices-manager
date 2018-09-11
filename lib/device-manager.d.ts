@@ -25,4 +25,6 @@ export declare class DeviceManager {
     private increaseDevicesUsage;
     private resetUsage;
     private checkDeviceUsageHasReachedLimit;
+    private static getEmuUsageLimit;
+    private static getSimUsageLimit;
 }
