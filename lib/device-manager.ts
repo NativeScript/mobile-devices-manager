@@ -24,7 +24,7 @@ export class DeviceManager {
         if (!query.platform) {
             query.platform = query.platform ? query.platform : (query.type === DeviceType.EMULATOR ? Platform.ANDROID : Platform.IOS);
         }
-        
+
         const options = query.options;
         delete query.options;
 
@@ -220,6 +220,7 @@ export class DeviceManager {
 
     private getMaxDeviceCount(query) {
         const maxDevicesCount = ((query.type === DeviceType.EMULATOR || query.platform === Platform.ANDROID) ? process.env['MAX_EMU_COUNT'] : process.env['MAX_SIM_COUNT']) || 1;
+        console.log(`Max device count ${maxDevicesCount}`)
         return maxDevicesCount
     }
 
@@ -275,13 +276,13 @@ export class DeviceManager {
             logError(`MAX DEVICE COUNT  by ${queryInfo} REACHED!!!`);
         }
 
-        if (bootedDevices.length + busyDevices.length > maxDevicesCount) {
+        if (bootedDevices.length + busyDevices.length >= maxDevicesCount) {
             logWarn(`Max device count by ${queryInfo} reached!!! Devices count: ${bootedDevices.length + busyDevices.length} > max device count: ${maxDevicesCount}!!!`);
             const devicesToKill = new Array();
             bootedDevices.forEach(d => devicesToKill.push({ name: d.name, token: d.token }));
             if (bootedDevices.length > 0) {
-                const result = devicesToKill.join("\n");
-                logWarn(`Killing all booted device by ${queryInfo}!!! `, result);
+                logWarn(`Killing all booted device by query: ${queryInfo}!!!`);
+                devicesToKill.forEach(o => console.log("Device: ", o));
                 for (let index = 0; index < bootedDevices.length; index++) {
                     const element = bootedDevices[index];
                     await this.killDevice(element);
