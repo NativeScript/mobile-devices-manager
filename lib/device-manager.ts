@@ -264,12 +264,10 @@ export class DeviceManager {
 
         if (bootedDevices.length > 0) {
             const devicesToKill = new Array();
-            bootedDevices.forEach(d => devicesToKill.push({ name: d.name, token: d.token }));
-            devicesToKill.forEach(o => console.log("Device: ", o));
             for (let index = 0; index < bootedDevices.length; index++) {
                 const element = bootedDevices[index];
-                devicesToKill.push(element);
                 if (this.checkDeviceUsageHasReachedLimit(element)) {
+                    devicesToKill.push(element);
                     logWarn("Device usage has reached the limit! ", element.name);
                     await this.killDevice(element);
                     wait(3000);
@@ -278,8 +276,9 @@ export class DeviceManager {
             }
 
             if (devicesToKill.length > 0) {
+                currentQueryProperty.status = Status.BOOTED;
                 bootedDevices = (await this._unitOfWork.devices.find(<any>currentQueryProperty));
-                logInfo(`Booted device count after reset ${queryInfo}: ${bootedDevices.length}`);
+                logInfo(`Booted device count after reset ${currentQueryProperty}: ${bootedDevices.length}`);
             }
         }
 
@@ -406,7 +405,7 @@ export class DeviceManager {
     }
 
     private checkDeviceUsageHasReachedLimit(device: IDevice): boolean {
-        const limitCount = device.type === DeviceType.EMULATOR || device.platform === Platform.ANDROID ? DeviceManager.getEmuUsageLimit() : DeviceManager.getSimUsageLimit();
+        const limitCount = (device.type === DeviceType.EMULATOR || device.platform === Platform.ANDROID) ? DeviceManager.getEmuUsageLimit() : DeviceManager.getSimUsageLimit();
         if (this._usedDevices.has(device.token) === false || this._usedDevices.get(device.token) === 0) {
             return false;
         }
